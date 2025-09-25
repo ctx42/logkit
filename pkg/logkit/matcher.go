@@ -25,8 +25,12 @@ type Matcher struct {
 }
 
 // NewMatcher returns a new instance of [Matcher] for all the provided checks.
+// When nil config is provided, the [DefaultConfig] will be used.
 func NewMatcher(t tester.T, cfg *Config, checks ...func(Entry) error) *Matcher {
 	t.Helper()
+	if cfg == nil {
+		cfg = DefaultConfig()
+	}
 	mcr := &Matcher{
 		cfg:    cfg,
 		checks: checks,

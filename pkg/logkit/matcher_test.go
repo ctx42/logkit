@@ -23,6 +23,24 @@ func Test_NewMatcher(t *testing.T) {
 		mcr := NewMatcher(tspy, cfg)
 
 		// --- Then ---
+		assert.Same(t, cfg, mcr.cfg)
+		assert.Nil(t, mcr.checks)
+		assert.NotNil(t, mcr.done)
+		assert.Zero(t, mcr.ent)
+		assert.Same(t, tspy, mcr.t)
+	})
+
+	t.Run("nil config means default", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectCleanups(1)
+		tspy.Close()
+
+		// --- When ---
+		mcr := NewMatcher(tspy, nil)
+
+		// --- Then ---
+		assert.Equal(t, DefaultConfig(), mcr.cfg)
 		assert.Nil(t, mcr.checks)
 		assert.NotNil(t, mcr.done)
 		assert.Zero(t, mcr.ent)
@@ -35,11 +53,10 @@ func Test_NewMatcher(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
 		fn := func(Entry) error { return nil }
 
 		// --- When ---
-		mcr := NewMatcher(tspy, cfg, fn)
+		mcr := NewMatcher(tspy, nil, fn)
 
 		// --- Then ---
 		assert.Len(t, 1, mcr.checks)
@@ -52,10 +69,8 @@ func Test_NewMatcher(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-
 		// --- When ---
-		mcr := NewMatcher(tspy, cfg)
+		mcr := NewMatcher(tspy, nil)
 
 		// --- Then ---
 		assert.NotNil(t, mcr.done)
@@ -69,8 +84,7 @@ func Test_NewMatcher(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg)
+		mcr := NewMatcher(tspy, nil)
 
 		// --- When ---
 		mcr.done = nil
@@ -86,9 +100,8 @@ func Test_Matcher_Checks(t *testing.T) {
 	tspy.ExpectCleanups(1)
 	tspy.Close()
 
-	cfg := DefaultConfig()
 	checks := []func(Entry) error{CheckMsg("msg0"), CheckStr("A", "a")}
-	mcr := NewMatcher(tspy, cfg, checks...)
+	mcr := NewMatcher(tspy, nil, checks...)
 
 	// --- When ---
 	have := mcr.Checks()
@@ -106,8 +119,7 @@ func Test_Matcher_Done(t *testing.T) {
 	tspy.ExpectCleanups(1)
 	tspy.Close()
 
-	cfg := DefaultConfig()
-	mcr := NewMatcher(tspy, cfg)
+	mcr := NewMatcher(tspy, nil)
 
 	// --- When ---
 	done := mcr.Done()
@@ -125,8 +137,7 @@ func Test_Matcher_IsDone(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckMsg("msg0"))
+		mcr := NewMatcher(tspy, nil, CheckMsg("msg0"))
 
 		// --- When ---
 		have := mcr.IsDone()
@@ -142,8 +153,7 @@ func Test_Matcher_IsDone(t *testing.T) {
 		tspy.Close()
 
 		lin0 := []byte(`{"level":"info", "str":"abc", "message":"msg0"}`)
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckMsg("msg0"))
+		mcr := NewMatcher(tspy, nil, CheckMsg("msg0"))
 		assert.True(t, mcr.match(0, lin0))
 
 		// --- When ---
@@ -159,8 +169,7 @@ func Test_Matcher_IsDone(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg)
+		mcr := NewMatcher(tspy, nil)
 		mcr.discard()
 
 		// --- When ---
@@ -179,8 +188,7 @@ func Test_Matcher_Entry(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg)
+		mcr := NewMatcher(tspy, nil)
 
 		// --- When ---
 		have := mcr.Entry()
@@ -244,8 +252,7 @@ func Test_Matcher_match(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg)
+		mcr := NewMatcher(tspy, nil)
 
 		// --- When ---
 		have := mcr.match(1, lin0)
@@ -266,8 +273,7 @@ func Test_Matcher_match(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckStr("str", "abc"))
+		mcr := NewMatcher(tspy, nil, CheckStr("str", "abc"))
 
 		// --- When ---
 		have := mcr.match(1, lin0)
@@ -295,8 +301,7 @@ func Test_Matcher_match(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckLevel("info"), CheckMsg("msg0"))
+		mcr := NewMatcher(tspy, nil, CheckLevel("info"), CheckMsg("msg0"))
 
 		// --- When ---
 		have := mcr.match(1, lin0)
@@ -322,8 +327,7 @@ func Test_Matcher_match(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckLevel("info"), CheckMsg("msg1"))
+		mcr := NewMatcher(tspy, nil, CheckLevel("info"), CheckMsg("msg1"))
 
 		// --- When ---
 		have := mcr.match(1, lin0)
@@ -342,8 +346,7 @@ func Test_Matcher_match(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg)
+		mcr := NewMatcher(tspy, nil)
 
 		// --- When ---
 		have := mcr.match(1, lin0)
@@ -363,8 +366,7 @@ func Test_Matcher_match(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckLevel("info"))
+		mcr := NewMatcher(tspy, nil, CheckLevel("info"))
 
 		// --- When ---
 		have0 := mcr.match(0, lin0)
@@ -394,8 +396,7 @@ func Test_Matcher_match(t *testing.T) {
 		tspy.Close()
 
 		fn := func(ent Entry) error { ent.m["edit"] = true; return nil }
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, fn)
+		mcr := NewMatcher(tspy, nil, fn)
 
 		// --- When ---
 		have := mcr.match(0, lin0)
@@ -414,8 +415,7 @@ func Test_Matcher_match(t *testing.T) {
 		tspy.ExpectLogContain("matcher line 1: invalid character")
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckMsg("msg0"))
+		mcr := NewMatcher(tspy, nil, CheckMsg("msg0"))
 
 		// --- When ---
 		have := mcr.match(1, []byte("{!!!}"))

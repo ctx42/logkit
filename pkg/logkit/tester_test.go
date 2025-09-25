@@ -163,9 +163,8 @@ func Test_Tester_Write(t *testing.T) {
 		tspy.ExpectCleanups(2)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr0 := NewMatcher(tspy, cfg, CheckMsg("msg0"))
-		mcr2 := NewMatcher(tspy, cfg, CheckMsg("msg2"))
+		mcr0 := NewMatcher(tspy, nil, CheckMsg("msg0"))
+		mcr2 := NewMatcher(tspy, nil, CheckMsg("msg2"))
 
 		tst := New(tspy)
 		tst.matchers = append(tst.matchers, mcr0, mcr2)
@@ -221,8 +220,7 @@ func Test_Tester_Write(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckMsg("msg1"))
+		mcr := NewMatcher(tspy, nil, CheckMsg("msg1"))
 		mcr.discard()
 
 		tst := New(tspy)
@@ -908,8 +906,7 @@ func Test_Tester_Match(t *testing.T) {
 		must.Value(tst.Write(lin1))
 		must.Value(tst.Write(lin2))
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckMsg("msg1"))
+		mcr := NewMatcher(tspy, nil, CheckMsg("msg1"))
 
 		// --- When ---
 		have := tst.Match(mcr)
@@ -941,8 +938,7 @@ func Test_Tester_Match(t *testing.T) {
 		must.Value(tst.Write(lin1))
 		must.Value(tst.Write(lin2))
 
-		cfg := DefaultConfig()
-		mcr := NewMatcher(tspy, cfg, CheckMsg("msg3"))
+		mcr := NewMatcher(tspy, nil, CheckMsg("msg3"))
 
 		// --- When ---
 		have := tst.Match(mcr)
@@ -958,8 +954,7 @@ func Test_Tester_Reset(t *testing.T) {
 	tspy := tester.New(t)
 	tspy.Close()
 
-	cfg := DefaultConfig()
-	mcr := NewMatcher(t, cfg, CheckLevel("info"))
+	mcr := NewMatcher(t, nil, CheckLevel("info"))
 
 	tst := New(tspy)
 	tst.matchers = append(tst.matchers, mcr)
