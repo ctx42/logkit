@@ -282,7 +282,7 @@ func (ets Entries) AssertNoDuration(field string, want time.Duration) bool {
 // function returns nil error. If none of the entries passed to the function
 // cause it to return nil, the test is marked as failed, an error message is
 // logged, and the method returns false.
-func (ets Entries) exp(fn func(Entry) error) bool {
+func (ets Entries) exp(fn Checker) bool {
 	ets.t.Helper()
 	for idx := range ets.ets {
 		if fn(ets.ets[idx]) == nil {
@@ -299,7 +299,7 @@ func (ets Entries) exp(fn func(Entry) error) bool {
 // to each entry, breaking the loop and exiting with false the first time the
 // function returns nil error. Before exiting with false, it marks the test
 // failed and logs the error message.
-func (ets Entries) notExp(fn func(Entry) error) bool {
+func (ets Entries) notExp(fn Checker) bool {
 	ets.t.Helper()
 	for idx := range ets.ets {
 		if fn(ets.ets[idx]) == nil {

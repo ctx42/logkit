@@ -14,78 +14,107 @@ import (
 	"github.com/ctx42/testing/pkg/tester"
 )
 
+// Checker represents a function which checks a log entry for a condition.
+type Checker func(Entry) error
+
 // Matcher represents log line matcher.
 type Matcher struct {
-	cfg    *Config             // Log configuration.
-	checks []func(Entry) error // Checks to run against the lines.
-	done   chan struct{}       // Closed by match od discard methods.
-	ent    Entry               // The first found log entry.
-	mx     sync.Mutex          // Guards Matcher checks.
-	t      tester.T            // Test manager.
+	// Log messages fields and their formats.
+	cfg *Config
+
+	// Checks to run against the lines.
+	checks []Checker
+
+	// Number of times the marcher matched a line or entry.
+	cnt int
+
+	// Guards the structure fields.
+	mx sync.Mutex
+
+	// When not nil, it will be closed when a log line or [Entry] is matched.
+	notify chan Entry
+
+	// Test manager.
+	t tester.T
 }
 
-// NewMatcher returns a new instance of [Matcher] for all the provided checks.
-// When nil config is provided, the [DefaultConfig] will be used.
-func NewMatcher(t tester.T, cfg *Config, checks ...func(Entry) error) *Matcher {
+// NewMatcher creates a new [Matcher] instance for the given checks.
+// If no checks are provided, it matches all log lines.
+// If config is nil, [DefaultConfig] is used.
+func NewMatcher(t tester.T, cfg *Config, checks ...Checker) *Matcher {
 	t.Helper()
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
-	mcr := &Matcher{
-		cfg:    cfg,
-		checks: checks,
-		done:   make(chan struct{}),
-		mx:     sync.Mutex{},
-		t:      t,
-	}
-	t.Cleanup(func() {
-		mcr.mx.Lock()
-		if mcr.done != nil {
-			close(mcr.done)
-			mcr.done = nil
-		}
-		mcr.mx.Unlock()
-	})
-	return mcr
+	return &Matcher{cfg: cfg, checks: checks, t: t}
 }
 
 // Checks returns a copy of the checks.
-func (mcr *Matcher) Checks() []func(Entry) error {
+func (mcr *Matcher) Checks() []Checker {
 	return slices.Clone(mcr.checks)
 }
 
-// Done returns the channel which is closed once the first [Entry] matching all
-// checks is found.
-func (mcr *Matcher) Done() <-chan struct{} {
+// Matched returns the number of times the matcher matched a line or entry.
+func (mcr *Matcher) Matched() int {
 	mcr.mx.Lock()
 	defer mcr.mx.Unlock()
-	return mcr.done
+	return mcr.cnt
 }
 
-// IsDone returns true if at least one [Entry] matching all checks was found.
-func (mcr *Matcher) IsDone() bool {
+// Notify returns a channel for notifications when a log line or [Entry]
+// matches. The channel closes automatically when the test ends.
+func (mcr *Matcher) Notify() <-chan Entry {
 	mcr.mx.Lock()
 	defer mcr.mx.Unlock()
-	return mcr.done == nil
+	if mcr.notify == nil {
+		mcr.notify = make(chan Entry)
+		mcr.t.Cleanup(func() {
+			mcr.mx.Lock()
+			if mcr.notify != nil {
+				close(mcr.notify)
+				mcr.notify = nil
+			}
+			mcr.mx.Unlock()
+		})
+	}
+	return mcr.notify
 }
 
-// Entry returns a copy of the first [Entry] matching all the checks or zero
-// value if it was not yet found.
-func (mcr *Matcher) Entry() Entry {
+// NotifyStop closes the notification channel returned by [Matcher.Notify].
+func (mcr *Matcher) NotifyStop() {
+	mcr.mx.Lock()
+	if mcr.notify != nil {
+		close(mcr.notify)
+		mcr.notify = nil
+	}
+	mcr.mx.Unlock()
+}
+
+// MatchEntry runs all checks on the provided [Entry]. Returns true if all
+// checks pass; otherwise, returns false.
+//
+// When [Matcher.Notify] is called, it sends the entry to the channel returned
+// if nothing listens on that channel, this call will block.
+func (mcr *Matcher) MatchEntry(ent Entry) bool {
 	mcr.mx.Lock()
 	defer mcr.mx.Unlock()
 
-	ent := mcr.ent
-	ent.m = maps.Clone(ent.m)
-	return ent
+	for _, chk := range mcr.checks {
+		if err := chk(ent); err != nil {
+			return false
+		}
+	}
+	if mcr.notify != nil {
+		mcr.notify <- ent
+	}
+	mcr.cnt++
+	return true
 }
 
-// match processes JSON encoded log lines. It decodes the line as
-// map[string]any, creates an [Entry] object from it and runs all the provided
-// checks on it. It closes the done channel, saves the [Entry] and returns true
-// only if the line matches all the checks. Otherwise, it returns false without
-// closing the done channel.
-func (mcr *Matcher) match(idx int, line []byte) bool {
+// MatchLine decodes a log line into a map[string]any, creates an [Entry], and
+// runs all checks on it. Returns the entry if all checks pass; otherwise,
+// returns a zero-value entry.
+func (mcr *Matcher) MatchLine(idx int, line []byte) Entry {
 	mcr.mx.Lock()
 	defer mcr.mx.Unlock()
 
@@ -93,51 +122,24 @@ func (mcr *Matcher) match(idx int, line []byte) bool {
 	dst := make(map[string]any)
 	if err := json.Unmarshal(line, &dst); err != nil {
 		mcr.t.Error(fmt.Errorf("matcher line %d: %w", idx, err))
-		return false
+		return ZeroEntry(mcr.t, mcr.cfg)
 	}
 
-	var first Entry
+	ent := Entry{
+		cfg: mcr.cfg,
+		raw: string(line),
+		m:   maps.Clone(dst),
+		idx: idx,
+		t:   mcr.t,
+	}
 	for _, chk := range mcr.checks {
-		ent := Entry{
-			cfg: mcr.cfg,
-			raw: string(line),
-			m:   maps.Clone(dst),
-			idx: idx,
-			t:   mcr.t,
-		}
 		if err := chk(ent); err != nil {
-			return false
-		}
-		// The entry is set to the first one that passed the check.
-		if first.IsZero() {
-			// Entry.m may have been modified by the check function.
-			first = Entry{
-				cfg: mcr.cfg,
-				raw: string(line),
-				m:   dst,
-				idx: idx,
-				t:   mcr.t,
-			}
+			return ZeroEntry(mcr.t, mcr.cfg)
 		}
 	}
-
-	if mcr.done != nil {
-		mcr.ent = first
-		close(mcr.done)
-		mcr.done = nil
+	if mcr.notify != nil {
+		mcr.notify <- ent
 	}
-	return true
-}
-
-// discard discards the [Matcher] instance by closing the done channel and
-// assigning nil to it.
-func (mcr *Matcher) discard() {
-	mcr.mx.Lock()
-	defer mcr.mx.Unlock()
-
-	if mcr.done != nil {
-		close(mcr.done)
-	}
-	mcr.done = nil
-	mcr.ent = Entry{}
+	mcr.cnt++
+	return ent
 }

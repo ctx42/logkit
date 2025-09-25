@@ -47,7 +47,7 @@ type Tester struct {
 	cnt      int          // Number of all log messages (calls to Write).
 	matchers []*Matcher   // Log line matchers.
 	matchIdx int          // Last matched log entry index (-1 means none).
-	mx       sync.RWMutex // Guards the buffer.
+	mx       sync.RWMutex // Guards the structure fields.
 	t        tester.T     // Test manager.
 }
 
@@ -108,13 +108,9 @@ func (tst *Tester) Write(p []byte) (n int, err error) {
 		return len(p), nil
 	}
 
-	m := tst.matchers[0]
-	if m.IsDone() {
-		return len(p), nil
-	}
-
 	cpy := slices.Clone(p)
-	if m.match(tst.cnt-1, cpy) {
+	m := tst.matchers[0]
+	if ent := m.MatchLine(tst.cnt-1, cpy); !ent.IsZero() {
 		tst.matchIdx = tst.cnt - 1
 		tst.matchers = tst.matchers[1:]
 	}
@@ -188,20 +184,20 @@ func (tst *Tester) entries() Entries {
 	return Entries{cfg: tst.cfg, ets: ets, t: tst.t}
 }
 
-// Filter returns entries matching the specified log level. Marks the test as
-// failed if log entries cannot be unmarshaled into valid JSON.
-func (tst *Tester) Filter(level string) Entries {
+// Filter returns entries matching the provided [Matcher].
+func (tst *Tester) Filter(checks ...Checker) Entries {
 	tst.mx.RLock()
 	defer tst.mx.RUnlock()
 	tst.t.Helper()
 
+	mcr := NewMatcher(tst.t, tst.cfg, checks...)
 	ets := make([]Entry, 0)
 	for _, ent := range tst.Entries().Get() {
-		if lvl, _ := ent.Str(tst.cfg.LevelField); lvl == level {
+		if mcr.MatchEntry(ent) {
 			ets = append(ets, ent)
 		}
 	}
-	return Entries{ets: ets, t: tst.t}
+	return Entries{cfg: tst.cfg, ets: ets, t: tst.t}
 }
 
 // FirstEntry returns the first log entry or zero value Entry if no log entries
@@ -246,14 +242,14 @@ func (tst *Tester) ResetLastMatch() {
 // WaitFor waits for a log entry that satisfies the specified conditions within
 // the given timeout duration. If the entry is not logged within the given
 // timeout, it will mark the test as failed and return zero value [Entry].
-func (tst *Tester) WaitFor(timeout string, checks ...func(Entry) error) Entry {
+func (tst *Tester) WaitFor(timeout string, checks ...Checker) Entry {
 	tst.mx.Lock()
 	tst.t.Helper()
 
 	to, err := time.ParseDuration(timeout)
 	if err != nil {
 		tst.t.Error(err)
-		return Entry{t: tst.t}
+		return ZeroEntry(tst.t, tst.cfg)
 	}
 
 	mcr := NewMatcher(tst.t, tst.cfg, checks...)
@@ -263,42 +259,44 @@ func (tst *Tester) WaitFor(timeout string, checks ...func(Entry) error) Entry {
 		if i <= tst.matchIdx {
 			continue
 		}
-		if mcr.match(i, []byte(ent.String())) {
+		if mcr.MatchEntry(ent) {
 			tst.matchIdx = i
 			tst.mx.Unlock()
 			return ent
 		}
 	}
 
+	found := mcr.Notify()
 	tst.matchers = append(tst.matchers, mcr)
-	done := mcr.Done()
 	timer := time.NewTimer(to)
 	defer timer.Stop()
 	tst.mx.Unlock()
 
+	var ent Entry
 	select {
-	case <-done:
+	case ent = <-found:
+		mcr.NotifyStop()
 		if !timer.Stop() {
 			<-timer.C
 		}
-		return mcr.Entry()
 
 	case <-timer.C:
-		mcr.discard()
-		mHeader := "timeout waiting for log entry reached"
-		tst.t.Error(notice.New(mHeader).Append("timeout", "%s", timeout))
-		tst.t.Error(tst.Entries().summary(1))
-		return Entry{t: tst.t}
+		mcr.NotifyStop()
 	}
+
+	if !ent.IsZero() {
+		return ent
+	}
+
+	mHeader := "timeout waiting for log entry reached"
+	tst.t.Error(notice.New(mHeader).Append("timeout", "%s", timeout))
+	tst.t.Error(tst.Entries().summary(1))
+	return ZeroEntry(tst.t, tst.cfg)
 }
 
 // WaitForAny works like [Tester.WaitFor] but resets the last match before it
 // returns. It can be used to match log entries in any order.
-func (tst *Tester) WaitForAny(
-	timeout string,
-	checks ...func(Entry) error,
-) Entry {
-
+func (tst *Tester) WaitForAny(timeout string, checks ...Checker) Entry {
 	tst.t.Helper()
 	defer tst.ResetLastMatch()
 	return tst.WaitFor(timeout, checks...)
@@ -312,8 +310,8 @@ func (tst *Tester) Match(mch *Matcher) Entry {
 	defer tst.mx.RUnlock()
 	tst.t.Helper()
 
-	for i, ent := range tst.entries().Get() {
-		if mch.match(i, []byte(ent.String())) {
+	for _, ent := range tst.entries().Get() {
+		if mch.MatchEntry(ent) {
 			return ent
 		}
 	}

@@ -535,7 +535,7 @@ func Test_check_level_success_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
-		check func(Entry) error
+		check Checker
 		level string
 	}{
 		{"debug", CheckDebug(), DefaultConfig().LevelDebugValue},
@@ -572,7 +572,7 @@ func Test_check_level_failure_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
-		check func(Entry) error
+		check Checker
 		want  string
 		have  string
 	}{

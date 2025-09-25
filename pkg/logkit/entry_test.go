@@ -12,6 +12,35 @@ import (
 	"github.com/ctx42/testing/pkg/tester"
 )
 
+func Test_ZeroEntry(t *testing.T) {
+	t.Run("with config instance", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t, 0)
+		tspy.Close()
+
+		cfg := DefaultConfig()
+
+		// --- When ---
+		have := ZeroEntry(tspy, cfg)
+
+		// --- Then ---
+		assert.True(t, have.IsZero())
+	})
+
+	t.Run("with nil config", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t, 0)
+		tspy.Close()
+
+		// --- When ---
+		have := ZeroEntry(tspy, nil)
+
+		// --- Then ---
+		assert.True(t, have.IsZero())
+		assert.Equal(t, DefaultConfig(), have.cfg)
+	})
+}
+
 func Test_Entry_IsZero(t *testing.T) {
 	t.Run("zero", func(t *testing.T) {
 		// --- Given ---

@@ -32,7 +32,7 @@ var (
 // Returns nil if the field exists, is a boolean, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a
 // boolean, or does not match, respectively.
-func CheckBool(field string, want bool) func(Entry) error {
+func CheckBool(field string, want bool) Checker {
 	return func(ent Entry) error {
 		have, err := HasBool(ent, field)
 		if err != nil {
@@ -52,7 +52,7 @@ func CheckBool(field string, want bool) func(Entry) error {
 // Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckStr(field, want string) func(Entry) error {
+func CheckStr(field, want string) Checker {
 	return func(ent Entry) error {
 		have, err := HasStr(ent, field)
 		if err != nil {
@@ -72,7 +72,7 @@ func CheckStr(field, want string) func(Entry) error {
 // Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckStrErr(field string, want error) func(Entry) error {
+func CheckStrErr(field string, want error) Checker {
 	return func(ent Entry) error {
 		have, err := HasStr(ent, field)
 		if err != nil {
@@ -92,7 +92,7 @@ func CheckStrErr(field string, want error) func(Entry) error {
 // Returns nil if the field exists, is a string, and contains the value.
 // Returns [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not
 // a string, or does not contain the value, respectively.
-func CheckContain(field, want string) func(Entry) error {
+func CheckContain(field, want string) Checker {
 	return func(ent Entry) error {
 		have, err := HasStr(ent, field)
 		if err != nil {
@@ -113,7 +113,7 @@ func CheckContain(field, want string) func(Entry) error {
 // value. Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckMsg(want string) func(Entry) error {
+func CheckMsg(want string) Checker {
 	return func(ent Entry) error {
 		return CheckStr(ent.cfg.MessageField, want)(ent)
 	}
@@ -124,7 +124,7 @@ func CheckMsg(want string) func(Entry) error {
 // value. Returns nil if the field exists, is a string, and contains the value.
 // Returns [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not
 // a string, or does not contain the value, respectively.
-func CheckMsgContain(want string) func(Entry) error {
+func CheckMsgContain(want string) Checker {
 	return func(ent Entry) error {
 		return CheckContain(ent.cfg.MessageField, want)(ent)
 	}
@@ -135,7 +135,7 @@ func CheckMsgContain(want string) func(Entry) error {
 // value. Returns nil if the field exists, is a string, and contains the value.
 // Returns [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not
 // a string, or does not contain the value, respectively.
-func CheckErrContain(want string) func(Entry) error {
+func CheckErrContain(want string) Checker {
 	return func(ent Entry) error {
 		return CheckContain(ent.cfg.ErrorField, want)(ent)
 	}
@@ -146,7 +146,7 @@ func CheckErrContain(want string) func(Entry) error {
 // equal to the given time. Returns nil if the field exists, is a valid time,
 // and matches. Returns [ErrMissing], [ErrType], or [ErrValue] if the field is
 // missing, not a valid time, or does not match, respectively.
-func CheckTime(field string, want time.Time) func(Entry) error {
+func CheckTime(field string, want time.Time) Checker {
 	return func(ent Entry) error {
 		have, err := HasTime(ent, field)
 		if err != nil {
@@ -166,7 +166,7 @@ func CheckTime(field string, want time.Time) func(Entry) error {
 // to the given duration. Returns nil if the field exists, is an integer, and
 // matches. Returns [ErrMissing], [ErrType], or [ErrValue] if the field is
 // missing, not an integer, or does not match, respectively.
-func CheckDuration(field string, want time.Duration) func(Entry) error {
+func CheckDuration(field string, want time.Duration) Checker {
 	return func(ent Entry) error {
 		have, err := HasDur(ent, field)
 		if err != nil {
@@ -188,7 +188,7 @@ func CheckDuration(field string, want time.Duration) func(Entry) error {
 // value. Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckLevel(want string) func(Entry) error {
+func CheckLevel(want string) Checker {
 	return func(ent Entry) error {
 		return CheckStr(ent.cfg.LevelField, want)(ent)
 	}
@@ -199,7 +199,7 @@ func CheckLevel(want string) func(Entry) error {
 // Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckDebug() func(Entry) error {
+func CheckDebug() Checker {
 	return func(ent Entry) error {
 		return CheckStr(ent.cfg.LevelField, ent.cfg.LevelDebugValue)(ent)
 	}
@@ -210,7 +210,7 @@ func CheckDebug() func(Entry) error {
 // Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckInfo() func(Entry) error {
+func CheckInfo() Checker {
 	return func(ent Entry) error {
 		return CheckStr(ent.cfg.LevelField, ent.cfg.LevelInfoValue)(ent)
 	}
@@ -221,7 +221,7 @@ func CheckInfo() func(Entry) error {
 // Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckWarn() func(Entry) error {
+func CheckWarn() Checker {
 	return func(ent Entry) error {
 		return CheckStr(ent.cfg.LevelField, ent.cfg.LevelWarnValue)(ent)
 	}
@@ -232,7 +232,7 @@ func CheckWarn() func(Entry) error {
 // Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckError() func(Entry) error {
+func CheckError() Checker {
 	return func(ent Entry) error {
 		return CheckStr(ent.cfg.LevelField, ent.cfg.LevelErrorValue)(ent)
 	}
@@ -243,7 +243,7 @@ func CheckError() func(Entry) error {
 // Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckFatal() func(Entry) error {
+func CheckFatal() Checker {
 	return func(ent Entry) error {
 		return CheckStr(ent.cfg.LevelField, ent.cfg.LevelFatalValue)(ent)
 	}
@@ -254,7 +254,7 @@ func CheckFatal() func(Entry) error {
 // Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
 // or does not match, respectively.
-func CheckPanic() func(Entry) error {
+func CheckPanic() Checker {
 	return func(ent Entry) error {
 		return CheckStr(ent.cfg.LevelField, ent.cfg.LevelPanicValue)(ent)
 	}
@@ -276,7 +276,7 @@ func CheckTrace() func(ent Entry) error {
 // nil if the field exists, is a number, and matches. Returns [ErrMissing],
 // [ErrType], or [ErrValue] if the field is missing, not a number, or does not
 // match, respectively.
-func CheckNumber(field string, want float64) func(Entry) error {
+func CheckNumber(field string, want float64) Checker {
 	return func(ent Entry) error {
 		have, err := HasNum(ent, field)
 		if err != nil {
@@ -300,7 +300,7 @@ func CheckNumber(field string, want float64) func(Entry) error {
 // value. Returns nil if the field exists, is a map, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a map,
 // or does not match, respectively.
-func CheckMap(field string, want map[string]any) func(Entry) error {
+func CheckMap(field string, want map[string]any) Checker {
 	return func(ent Entry) error {
 		have, err := HasMap(ent, field)
 		if err != nil {

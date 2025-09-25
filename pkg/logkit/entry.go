@@ -36,6 +36,17 @@ type Entry struct {
 	t   tester.T       // Test manager.
 }
 
+// ZeroEntry returns a new [Entry] with only the test manager and config set.
+// This enables the use of instance methods, which require these fields.
+// For this entry, [Entry.IsZero] returns true.
+// If config is nil, [DefaultConfig] is used.
+func ZeroEntry(t tester.T, cfg *Config) Entry {
+	if cfg == nil {
+		cfg = DefaultConfig()
+	}
+	return Entry{cfg: cfg, t: t}
+}
+
 // IsZero reports whether the raw string is empty. Returns true if the string
 // is empty, and false otherwise.
 func (ent Entry) IsZero() bool {

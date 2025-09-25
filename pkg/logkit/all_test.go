@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/check"
@@ -55,10 +56,10 @@ func MustEntries(t tester.T, raws ...string) Entries {
 
 // JSON2Map unmarshalls JSON to `map[string]any` and returns it on success. On
 // failure, marks the test as failed and returns nil.
-func JSON2Map(t tester.T, data []byte) map[string]any {
+func JSON2Map(t tester.T, data string) map[string]any {
 	t.Helper()
 	var m map[string]any
-	if err := json.Unmarshal(data, &m); err != nil {
+	if err := json.Unmarshal([]byte(data), &m); err != nil {
 		t.Error(err)
 		return nil
 	}
@@ -77,6 +78,39 @@ func MustWriteLine(w io.Writer, lines ...string) {
 			panic(fmt.Sprintf(format, len(format), n))
 		}
 	}
+}
+
+// ReceiveValue waits in a separate goroutine for up to the given timeout for a
+// value to be received from the channel. Returns a channel on which the
+// received value will be sent. If the timeout is reached, the returned channel
+// is closed, the test is marked as failed, and the error message is logged.
+func ReceiveValue[T any](t tester.T, timeout string, from <-chan T) <-chan T {
+	t.Helper()
+
+	to, err := time.ParseDuration(timeout)
+	if err != nil {
+		t.Fatal(err)
+		return nil
+	}
+	timer := time.NewTimer(to)
+
+	received := make(chan T)
+	go func() {
+		received <- <-from
+		select {
+		case v := <-from:
+			if !timer.Stop() {
+				<-timer.C
+			}
+			received <- v
+
+		case <-timer.C:
+			close(received)
+			mHeader := "timeout receiving a value from the channel"
+			t.Error(notice.New(mHeader).Append("timeout", "%s", timeout))
+		}
+	}()
+	return received
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -122,7 +156,7 @@ func Test_JSON2Map(t *testing.T) {
 		tspy.Close()
 
 		// --- When ---
-		have := JSON2Map(tspy, []byte(`{"f_str": "abc"}`))
+		have := JSON2Map(tspy, `{"f_str": "abc"}`)
 
 		// --- Then ---
 		assert.Equal(t, map[string]any{"f_str": "abc"}, have)
@@ -136,7 +170,7 @@ func Test_JSON2Map(t *testing.T) {
 		tspy.Close()
 
 		// --- When ---
-		have := JSON2Map(tspy, []byte("{!!!}"))
+		have := JSON2Map(tspy, "{!!!}")
 
 		// --- Then ---
 		assert.Nil(t, have)

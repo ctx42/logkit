@@ -160,7 +160,6 @@ func Test_Tester_Write(t *testing.T) {
 		lin2 := []byte(`{"level":"info", "str":"ghi", "message":"msg2"}`)
 
 		tspy := tester.New(t)
-		tspy.ExpectCleanups(2)
 		tspy.Close()
 
 		mcr0 := NewMatcher(tspy, nil, CheckMsg("msg0"))
@@ -215,13 +214,12 @@ func Test_Tester_Write(t *testing.T) {
 		// --- Given ---
 		lin0 := []byte(`{"level":"info", "str":"abc", "message":"msg0"}`)
 		lin1 := []byte(`{"level":"info", "str":"def", "message":"msg1"}`)
+		lin2 := []byte(`{"level":"info", "str":"def", "message":"msg1"}`)
 
 		tspy := tester.New(t)
-		tspy.ExpectCleanups(1)
 		tspy.Close()
 
 		mcr := NewMatcher(tspy, nil, CheckMsg("msg1"))
-		mcr.discard()
 
 		tst := New(tspy)
 		tst.matchers = append(tst.matchers, mcr)
@@ -229,11 +227,12 @@ func Test_Tester_Write(t *testing.T) {
 		// --- When ---
 		must.Value(tst.Write(lin0))
 		must.Value(tst.Write(lin1))
+		must.Value(tst.Write(lin2))
 
 		// --- Then ---
-		assert.Equal(t, string(lin0)+string(lin1), string(tst.buf))
-		assert.Equal(t, 2, tst.cnt)
-		assert.Equal(t, -1, tst.matchIdx)
+		assert.Equal(t, string(lin0)+string(lin1)+string(lin2), string(tst.buf))
+		assert.Equal(t, 3, tst.cnt)
+		assert.Equal(t, 1, tst.matchIdx)
 	})
 }
 
@@ -460,7 +459,7 @@ func Test_Tester_Filter(t *testing.T) {
 		must.Value(tst.Write(lin2))
 
 		// --- When ---
-		ets := tst.Filter("info")
+		ets := tst.Filter(CheckInfo())
 
 		// --- Then ---
 		assert.Same(t, tspy, ets.t)
@@ -490,7 +489,7 @@ func Test_Tester_Filter(t *testing.T) {
 		must.Value(tst.Write(lin2))
 
 		// --- When ---
-		ets := tst.Filter("error")
+		ets := tst.Filter(CheckError())
 
 		// --- Then ---
 		assert.Same(t, tspy, ets.t)
@@ -637,7 +636,6 @@ func Test_Tester_WaitFor(t *testing.T) {
 		lin2 := []byte(`{"level":"info", "str":"abc", "message":"msg2"}`)
 
 		tspy := tester.New(t)
-		tspy.ExpectCleanups(1)
 		tspy.Close()
 
 		tst := New(tspy)
@@ -716,7 +714,6 @@ func Test_Tester_WaitFor(t *testing.T) {
 		lin2 := []byte(`{"level":"info", "str":"abc", "message":"msg2"}`)
 
 		tspy := tester.New(t)
-		tspy.ExpectCleanups(1)
 		tspy.Close()
 
 		tst := New(tspy)
@@ -855,7 +852,7 @@ func Test_Tester_WaitForAny(t *testing.T) {
 		lin2 := []byte(`{"level":"info", "str":"def", "message":"msg2"}`)
 
 		tspy := tester.New(t)
-		tspy.ExpectCleanups(2)
+		tspy.ExpectCleanups(1)
 		tspy.Close()
 
 		tst := New(tspy)
@@ -869,7 +866,7 @@ func Test_Tester_WaitForAny(t *testing.T) {
 			chk01 := CheckStr("str", "def")
 			ent0 = tst.WaitForAny("50ms", chk00, chk01)
 
-			// Start waiting for first log entry.
+			// Start waiting for the first log entry.
 			chk10 := CheckLevel("info")
 			chk11 := CheckStr("str", "abc")
 			ent1 = tst.WaitForAny("50ms", chk10, chk11)
@@ -898,7 +895,6 @@ func Test_Tester_Match(t *testing.T) {
 		lin2 := []byte(`{"level":"info", "str":"abc", "message":"msg2"}`)
 
 		tspy := tester.New(t)
-		tspy.ExpectCleanups(1)
 		tspy.Close()
 
 		tst := New(tspy)
@@ -923,7 +919,6 @@ func Test_Tester_Match(t *testing.T) {
 		lin2 := []byte(`{"level":"info", "str":"abc", "message":"msg2"}`)
 
 		tspy := tester.New(t)
-		tspy.ExpectCleanups(1)
 		tspy.ExpectError()
 		wMsg := "log entry not found\n" +
 			"entries logged so far:\n" +
