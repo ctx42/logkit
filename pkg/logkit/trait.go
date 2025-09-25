@@ -67,8 +67,8 @@ func NewTrait(t tester.T) *Trait {
 	return tr
 }
 
-// Writer returns the writer logger should use as a destination.
-func (tr *Trait) Writer() io.Writer { return tr.tlog }
+// LogWriter returns the writer a logger should use as a destination.
+func (tr *Trait) LogWriter() io.Writer { return tr.tlog }
 
 // ExamineLog returns the test log for examination. If it doesn't get called
 // and there are messages logged, it will mark the test as failed.

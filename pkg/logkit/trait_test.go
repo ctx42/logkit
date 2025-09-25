@@ -45,6 +45,21 @@ func Test_NewTrait(t *testing.T) {
 	})
 }
 
+func Test_Trait_LogWriter(t *testing.T) {
+	// --- Given ---
+	tspy := tester.New(t)
+	tspy.ExpectCleanups(1)
+	tspy.Close()
+
+	tr := NewTrait(tspy)
+
+	// --- When ---
+	have := tr.LogWriter()
+
+	// --- Then ---
+	assert.Same(t, tr.tlog, have)
+}
+
 func Test_Trait_ExamineLog(t *testing.T) {
 	// --- Given ---
 	tspy := tester.New(t)
