@@ -1,3 +1,6 @@
+## v0.4.0 (Fri, 26 Sep 2025 10:01:28 UTC)
+- feat!: Change how `logkit.Matcher` notifies about matches.
+
 ## v0.3.0 (Thu, 25 Sep 2025 12:17:56 UTC)
 - feat: Calling `logkit.NewMatcher` with nil config means use `DefaultConfig`.
 
