@@ -24,7 +24,7 @@ func HasBool(ent Entry, field string) (bool, error) {
 			Remove("key").
 			Wrap(ErrMissing)
 	}
-	if err = check.SameType(true, val); err != nil {
+	if _, err = check.SameType(true, val); err != nil {
 		return false, notice.From(err, "log entry").
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
@@ -46,7 +46,7 @@ func HasStr(ent Entry, field string) (string, error) {
 			Remove("key").
 			Wrap(ErrMissing)
 	}
-	if err = check.SameType("", val); err != nil {
+	if _, err = check.SameType("", val); err != nil {
 		return "", notice.From(err, "log entry").
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
@@ -71,7 +71,7 @@ func HasTime(ent Entry, field string) (time.Time, error) {
 			Remove("key").
 			Wrap(ErrMissing)
 	}
-	if err = check.SameType("", val); err != nil {
+	if _, err = check.SameType("", val); err != nil {
 		return time.Time{}, notice.From(err, "log entry").
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
@@ -103,7 +103,7 @@ func HasDur(ent Entry, field string) (time.Duration, error) {
 			Remove("key").
 			Wrap(ErrMissing)
 	}
-	if err = check.SameType(1.1, val); err != nil {
+	if _, err = check.SameType(1.1, val); err != nil {
 		return 0, notice.From(err, "log entry").
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
@@ -127,7 +127,7 @@ func HasNum(ent Entry, field string) (float64, error) {
 			Remove("key").
 			Wrap(ErrMissing)
 	}
-	if err = check.SameType(1.1, val); err != nil {
+	if _, err = check.SameType(1.1, val); err != nil {
 		return 0, notice.From(err, "log entry").
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
@@ -148,7 +148,7 @@ func HasMap(ent Entry, field string) (map[string]any, error) {
 			Remove("key").
 			Wrap(ErrMissing)
 	}
-	if err = check.SameType(map[string]any{}, val); err != nil {
+	if _, err = check.SameType(map[string]any{}, val); err != nil {
 		return nil, notice.From(err, "log entry").
 			Prepend("field", "%s", field).
 			Wrap(ErrType)

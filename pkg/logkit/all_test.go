@@ -23,7 +23,7 @@ func init() { check.RegisterTypeChecker(Entry{}, EntryCheck) }
 func EntryCheck(want, have any, opts ...any) error {
 	ops := check.DefaultOptions(opts...)
 	stOpt := check.WithOptions(ops)
-	if err := check.SameType(Entry{}, have, stOpt); err != nil {
+	if _, err := check.SameType(Entry{}, have, stOpt); err != nil {
 		return err
 	}
 	w, h := want.(Entry), have.(Entry)
