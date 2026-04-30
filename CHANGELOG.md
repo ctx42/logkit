@@ -1,3 +1,6 @@
+## v0.4.1 (Thu, 30 Apr 2026 16:28:53 UTC)
+- chore: Update dependencies.
+
 ## v0.4.0 (Fri, 26 Sep 2025 10:01:28 UTC)
 - feat!: Change how `logkit.Matcher` notifies about matches.
 
