@@ -5,6 +5,7 @@ package logkit
 
 import (
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/ctx42/testing/pkg/assert"
@@ -822,15 +823,22 @@ func Test_Tester_WaitForAny(t *testing.T) {
 		tst := New(tspy)
 		must.Value(tst.Write(lin0))
 
-		started, exited := make(chan struct{}), make(chan struct{})
+		exited := make(chan struct{})
 		var ent Entry
 		go func() {
-			close(started)
 			chk0 := CheckMsg("msg2")
 			ent = tst.WaitForAny("500ms", chk0)
 			close(exited)
 		}()
-		<-started
+		for {
+			tst.mx.RLock()
+			ready := len(tst.matchers) > 0
+			tst.mx.RUnlock()
+			if ready {
+				break
+			}
+			runtime.Gosched()
+		}
 
 		// --- When ---
 		must.Value(tst.Write(lin1))
@@ -857,10 +865,9 @@ func Test_Tester_WaitForAny(t *testing.T) {
 
 		tst := New(tspy)
 
-		started, exited := make(chan struct{}), make(chan struct{})
+		exited := make(chan struct{})
 		var ent0, ent1 Entry
 		go func() {
-			close(started)
 			// Start waiting for the last log entry.
 			chk00 := CheckLevel("info")
 			chk01 := CheckStr("str", "def")
@@ -872,7 +879,15 @@ func Test_Tester_WaitForAny(t *testing.T) {
 			ent1 = tst.WaitForAny("50ms", chk10, chk11)
 			close(exited)
 		}()
-		<-started
+		for {
+			tst.mx.RLock()
+			ready := len(tst.matchers) > 0
+			tst.mx.RUnlock()
+			if ready {
+				break
+			}
+			runtime.Gosched()
+		}
 
 		// --- When ---
 		must.Value(tst.Write(lin0))
