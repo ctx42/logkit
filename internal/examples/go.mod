@@ -1,6 +1,6 @@
 module example
 
-go 1.24.0
+go 1.26
 
 require (
 	github.com/ctx42/logkit v0.0.0-00010101000000-000000000000
@@ -8,7 +8,7 @@ require (
 )
 
 require (
-	github.com/ctx42/testing v0.38.0 // indirect
+	github.com/ctx42/testing v0.47.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
