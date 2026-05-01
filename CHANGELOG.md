@@ -1,3 +1,7 @@
+## v0.5.0 (Fri, 01 May 2026 20:06:22 UTC)
+- test(logkit): fix flaky WaitForAny tests.
+- chore: Update to Go 1.26 and update dependencies.
+
 ## v0.4.1 (Thu, 30 Apr 2026 16:28:53 UTC)
 - chore: Update dependencies.
 
