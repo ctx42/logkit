@@ -210,7 +210,7 @@ func (tst *Tester) FirstEntry() Entry {
 
 	ets := tst.Entries().Get()
 	if len(ets) == 0 {
-		return Entry{t: tst.t}
+		return ZeroEntry(tst.t, tst.cfg)
 	}
 	return ets[0]
 }
@@ -225,7 +225,7 @@ func (tst *Tester) LastEntry() Entry {
 
 	ets := tst.Entries().Get()
 	if len(ets) == 0 {
-		return Entry{t: tst.t}
+		return ZeroEntry(tst.t, tst.cfg)
 	}
 	return ets[len(ets)-1]
 }
@@ -317,7 +317,7 @@ func (tst *Tester) Match(mch *Matcher) Entry {
 	}
 	tst.t.Error(notice.New("log entry not found"))
 	tst.t.Error(tst.Entries().summary(1))
-	return Entry{t: tst.t}
+	return ZeroEntry(tst.t, tst.cfg)
 }
 
 // Reset resets the Tester.

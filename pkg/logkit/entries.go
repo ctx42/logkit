@@ -43,7 +43,7 @@ func (ets Entries) Entry(n int) Entry {
 	msg := notice.New("[log entry] expected log entry to exist").
 		Append("index", "%d", n)
 	ets.t.Error(msg)
-	return Entry{}
+	return ZeroEntry(ets.t, ets.cfg)
 }
 
 // AssertRaw asserts that the raw log entries match the provided string.
