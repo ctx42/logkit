@@ -1,3 +1,6 @@
+## v0.5.1 (Mon, 04 May 2026 15:25:14 UTC)
+- fix: use ZeroEntry for error-path Entry returns.
+
 ## v0.5.0 (Fri, 01 May 2026 20:06:22 UTC)
 - test(logkit): fix flaky WaitForAny tests.
 - chore: Update to Go 1.26 and update dependencies.
