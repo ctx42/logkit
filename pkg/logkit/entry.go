@@ -24,7 +24,7 @@ const (
 	TypTime        FieldType = "time"
 	TypDur         FieldType = "duration"
 	TypMap         FieldType = "map"
-	TypUnsupported FieldType = "unsupported"
+	TypUnsupported FieldType = "unsupported" // Any other JSON value type.
 )
 
 // Entry represents a single log entry (line).
