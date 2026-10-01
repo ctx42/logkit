@@ -1164,7 +1164,7 @@ func Test_Entry_AssertWithin(t *testing.T) {
 		tspy := tester.New(t)
 		tspy.ExpectError()
 		wMsg := "" +
-			"[log entry] [within] failed to parse duration:\n" +
+			"[log entry] failed to parse duration:\n" +
 			"  field: time\n" +
 			"  value: abc"
 		tspy.ExpectLogEqual(wMsg)
