@@ -311,13 +311,13 @@ func (tst *Tester) WaitForAny(timeout string, checks ...Checker) Entry {
 // Match uses [Matcher] to find the first entry in far logged entries. When
 // entry is not found, it will mark the test as failed and return zero value
 // [Entry].
-func (tst *Tester) Match(mch *Matcher) Entry {
+func (tst *Tester) Match(mcr *Matcher) Entry {
 	tst.mx.RLock()
 	defer tst.mx.RUnlock()
 	tst.t.Helper()
 
 	for _, ent := range tst.entries().Get() {
-		if mch.MatchEntry(ent) {
+		if mcr.MatchEntry(ent) {
 			return ent
 		}
 	}
