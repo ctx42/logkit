@@ -28,8 +28,8 @@ func WithBytes(buf []byte) func(*Tester) {
 	return func(tst *Tester) { tst.buf = buf }
 }
 
-// WithString is an option for [New] which sets the value of the buffer inside the
-// [Tester].
+// WithString is an option for [New] which sets the value of the buffer inside
+// the [Tester].
 func WithString(content string) func(*Tester) {
 	return func(tst *Tester) { tst.buf = []byte(content) }
 }
