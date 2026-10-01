@@ -1,41 +1,52 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/ctx42/logkit)](https://goreportcard.com/report/github.com/ctx42/logkit)
 [![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg)](https://pkg.go.dev/github.com/ctx42/logkit)
-![Tests](https://github.com/ctx42/logkit/actions/workflows/go.yml/badge.svg?branch=master)
+[![Tests](https://github.com/ctx42/logkit/actions/workflows/go.yml/badge.svg?branch=master)](https://github.com/ctx42/logkit/actions/workflows/go.yml)
 
 # Logkit: Structured JSON Log Testing for Go
 
-`logkit` is a lightweight, powerful Go library for testing structured JSON logs.
-It simplifies capturing, filtering, waiting for, and asserting log entries,
-ensuring your logging logic is robust and reliable. Designed for flexibility, it
-integrates seamlessly with any logging library that supports JSON output and
-custom `io.Writer` destinations.
+`logkit` is a Go library for testing structured JSON logs. It captures, filters,
+waits for, and asserts log entries, and works with any logging library that
+writes JSON to a custom `io.Writer`.
 
 <!-- TOC -->
 * [Logkit: Structured JSON Log Testing for Go](#logkit-structured-json-log-testing-for-go)
   * [Why Logkit?](#why-logkit)
+  * [Prerequisites](#prerequisites)
   * [Installation](#installation)
   * [Usage](#usage)
     * [With Zerolog](#with-zerolog)
-    * [Slog](#slog)
+    * [With Slog](#with-slog)
     * [With Zap](#with-zap)
     * [With Logrus](#with-logrus)
-  * [Assertions](#assertions)
     * [Custom Matchers for Complex Tests](#custom-matchers-for-complex-tests)
+    * [Filtering Entries](#filtering-entries)
     * [Waiting for Asynchronous Logs](#waiting-for-asynchronous-logs)
     * [Loading Logs from Files](#loading-logs-from-files)
+    * [Failing Tests With Unexamined Logs](#failing-tests-with-unexamined-logs)
+  * [Configuration](#configuration)
+  * [Assertions](#assertions)
+  * [License](#license)
 <!-- TOC -->
 
 ## Why Logkit?
 
 Logging is critical for debugging and monitoring applications, but testing logs
-is often overlooked or cumbersome. The `logkit` module addresses this by 
+is often overlooked or cumbersome. The `logkit` module addresses this by
 providing:
 
-- **Simple Assertions**: Validate log levels, messages, and fields with clear, type-safe assert methods.
+- **Simple Assertions**: Validate log levels, messages, and fields with typed
+  assert methods.
 - **Flexible Matching**: Define custom matchers to test complex log structures.
-- **Asynchronous Support**: Wait for logs in concurrent applications with configurable timeouts.
+- **Asynchronous Support**: Wait for logs in concurrent applications with
+  configurable timeouts.
 - **File Integration**: Load and test logs directly from files.
-- **Type Safety**: Ensure fields match expected types (e.g., string, number, time) with precise error reporting.
+- **Type Safety**: Ensure fields match expected types (e.g., string, number,
+  time) with precise error reporting.
+- **Examined Logs**: Fail a test whose logs were written but never examined.
+
+## Prerequisites
+
+- Go 1.26 or newer.
 
 ## Installation
 
@@ -43,63 +54,73 @@ providing:
 go get github.com/ctx42/logkit
 ```
 
+Import the package:
+
+```go
+import "github.com/ctx42/logkit/pkg/logkit"
+```
+
 ## Usage
 
 ### With Zerolog
 
-The [zerolog](https://github.com/rs/zerolog) log message format is supported 
+The [zerolog](https://github.com/rs/zerolog) log message format is supported
 out of the box without any additional configuration.
 
+<!-- gmmce:internal/examples/Example_zerolog -->
 ```go
-func Test_Zerolog(t *testing.T) {
-	// --- Given ---
-	tst := logkit.New(t) // Initialize logkit.
+t := &testing.T{} // Test manager.
 
-	// Configure zerolog with Tester as the writer.
-	log := zerolog.New(tst)
+tst := logkit.New(t) // The zerolog format needs no configuration.
 
-	// --- When ---
-	// Use the log instance in your application.
-	log.Info().Int("A", 0).Str("B", "x").Msg("msg 0")
-	log.Warn().Int("A", 1).Str("B", "y").Msg("msg 1")
-	log.Error().Int("A", 2).Str("B", "z").Msg("msg 2")
+// Set the Tester as the zerolog destination.
+log := zerolog.New(tst)
 
-	// --- Then ---
-	ets := tst.Entries()
-	ets.AssertNumber("A", 2) // Success.
-	ets.AssertStr("B", "z")  // Success.
+// Use the log instance in your application.
+log.Info().Int("A", 0).Str("B", "x").Msg("msg 0")
+log.Warn().Int("A", 1).Str("B", "y").Msg("msg 1")
+log.Error().Int("A", 2).Str("B", "z").Msg("msg 2")
 
-	t.Log(tst.Entries().Summary())
-}
+ets := tst.Entries()
+fmt.Printf("has A=2: %v\n", ets.AssertNumber("A", 2))
+fmt.Printf("has B=z: %v\n", ets.AssertStr("B", "z"))
+fmt.Printf("has msg 1: %v\n", ets.AssertMsg("msg 1"))
+
+// Output:
+// has A=2: true
+// has B=z: true
+// has msg 1: true
 ```
 
-### Slog
+### With Slog
 
-The [log/slog](https://pkg.go.dev/log/slog) log message format is supported 
+The [log/slog](https://pkg.go.dev/log/slog) log message format is supported
 by providing `logkit.SlogConfig()` configuration to the `logkit.Tester`.
 
+<!-- gmmce:internal/examples/Example_slog -->
 ```go
-func Test_Slog(t *testing.T) {
-	// --- Given ---
-	opt := logkit.WithConfig(logkit.SlogConfig()) // Configure logkit.
-	tst := logkit.New(t, opt)                     // Initialize logkit.
+t := &testing.T{} // Test manager.
 
-	// Configure slog.
-	log := slog.New(slog.NewJSONHandler(tst, nil))
+opt := logkit.WithConfig(logkit.SlogConfig()) // Configure logkit.
+tst := logkit.New(t, opt)                     // Initialize logkit.
 
-	// --- When ---
-	// Use the log instance in your application.
-	log.Info("msg 0", "A", 0, "B", "x")
-	log.Warn("msg 1", "A", 1, "B", "y")
-	log.Error("msg 2", "A", 2, "B", "z")
+// Set the Tester as the slog destination.
+log := slog.New(slog.NewJSONHandler(tst, nil))
 
-	// --- Then ---
-	ets := tst.Entries()
-	ets.AssertNumber("A", 2) // Success.
-	ets.AssertStr("B", "z")  // Success.
+// Use the log instance in your application.
+log.Info("msg 0", "A", 0, "B", "x")
+log.Warn("msg 1", "A", 1, "B", "y")
+log.Error("msg 2", "A", 2, "B", "z")
 
-	t.Log(tst.Entries().Summary())
-}
+ets := tst.Entries()
+fmt.Printf("has A=2: %v\n", ets.AssertNumber("A", 2))
+fmt.Printf("has B=z: %v\n", ets.AssertStr("B", "z"))
+fmt.Printf("has msg 1: %v\n", ets.AssertMsg("msg 1"))
+
+// Output:
+// has A=2: true
+// has B=z: true
+// has msg 1: true
 ```
 
 ### With Zap
@@ -107,99 +128,215 @@ func Test_Slog(t *testing.T) {
 The [zap](https://github.com/uber-go/zap) log message format is supported
 by providing `logkit.ZapConfig()` configuration to the `logkit.Tester`.
 
+<!-- gmmce:internal/examples/Example_zap -->
 ```go
-func Test_zap(t *testing.T) {
-	// --- Given ---
-	opt := logkit.WithConfig(logkit.ZapConfig()) // Configure logkit.
-	tst := logkit.New(t, opt)                    // Initialize logkit.
+t := &testing.T{} // Test manager.
 
-	// Configure Zap.
-	writer := zapcore.AddSync(tst) // Set the Tester as the destination.
-	encCfg := zap.NewProductionEncoderConfig()
-	encCfg.EncodeTime = zapcore.RFC3339TimeEncoder
-	enc := zapcore.NewJSONEncoder(encCfg)
-	log := zap.New(zapcore.NewCore(enc, writer, zapcore.InfoLevel))
+opt := logkit.WithConfig(logkit.ZapConfig()) // Configure logkit.
+tst := logkit.New(t, opt)                    // Initialize logkit.
 
-	// --- When ---
-	// Use the log instance in your application.
-	log.Info("msg 0", zap.Int("A", 0), zap.String("B", "x"))
-	log.Warn("msg 1", zap.Int("A", 1), zap.String("B", "y"))
-	log.Error("msg 2", zap.Int("A", 2), zap.String("B", "z"))
+// Set the Tester as the zap destination.
+writer := zapcore.AddSync(tst)
+encCfg := zap.NewProductionEncoderConfig()
+encCfg.EncodeTime = zapcore.RFC3339TimeEncoder
+enc := zapcore.NewJSONEncoder(encCfg)
+log := zap.New(zapcore.NewCore(enc, writer, zapcore.InfoLevel))
 
-	// --- Then ---
-	ets := tst.Entries()
-	ets.AssertNumber("A", 2) // Success.
-	ets.AssertStr("B", "z")  // Success.
+// Use the log instance in your application.
+log.Info("msg 0", zap.Int("A", 0), zap.String("B", "x"))
+log.Warn("msg 1", zap.Int("A", 1), zap.String("B", "y"))
+log.Error("msg 2", zap.Int("A", 2), zap.String("B", "z"))
 
-	t.Log(tst.Entries().Summary())
-}
+ets := tst.Entries()
+fmt.Printf("has A=2: %v\n", ets.AssertNumber("A", 2))
+fmt.Printf("has B=z: %v\n", ets.AssertStr("B", "z"))
+fmt.Printf("has msg 1: %v\n", ets.AssertMsg("msg 1"))
+
+// Output:
+// has A=2: true
+// has B=z: true
+// has msg 1: true
 ```
 
 ### With Logrus
 
-The [logrus](https://github.com/sirupsen/logrus) log message format is 
-supported by providing `logkit.LogrusConfig()` configuration to the 
+The [logrus](https://github.com/sirupsen/logrus) log message format is
+supported by providing `logkit.LogrusConfig()` configuration to the
 `logkit.Tester`.
 
+<!-- gmmce:internal/examples/Example_logrus -->
 ```go
-func Test_Logrus(t *testing.T) {
-	// --- Given ---
-	opt := logkit.WithConfig(logkit.LogrusConfig()) // Configure logkit.
-	tst := logkit.New(t, opt)                       // Initialize logkit.
+t := &testing.T{} // Test manager.
 
-	// Configure Logrus.
-	log := logrus.New()
-	log.SetOutput(tst) // Set the Tester as the destination.
-	log.SetFormatter(&logrus.JSONFormatter{})
+opt := logkit.WithConfig(logkit.LogrusConfig()) // Configure logkit.
+tst := logkit.New(t, opt)                       // Initialize logkit.
 
-	// --- When ---
-	// Use the log instance in your application.
-	log.WithField("A", 0).WithField("B", "x").Info("msg 0")
-	log.WithField("A", 1).WithField("B", "y").Warn("msg 1")
-	log.WithField("A", 2).WithField("B", "z").Error("msg 2")
+// Set the Tester as the logrus destination.
+log := logrus.New()
+log.SetOutput(tst)
+log.SetFormatter(&logrus.JSONFormatter{})
 
-	// --- Then ---
-	ets := tst.Entries()
-	ets.AssertNumber("A", 2) // Success.
-	ets.AssertStr("B", "z")  // Success.
+// Use the log instance in your application.
+log.WithField("A", 0).WithField("B", "x").Info("msg 0")
+log.WithField("A", 1).WithField("B", "y").Warn("msg 1")
+log.WithField("A", 2).WithField("B", "z").Error("msg 2")
 
-	t.Log(tst.Entries().Summary())
-}
+ets := tst.Entries()
+fmt.Printf("has A=2: %v\n", ets.AssertNumber("A", 2))
+fmt.Printf("has B=z: %v\n", ets.AssertStr("B", "z"))
+fmt.Printf("has msg 1: %v\n", ets.AssertMsg("msg 1"))
+
+// Output:
+// has A=2: true
+// has B=z: true
+// has msg 1: true
 ```
+
+### Custom Matchers for Complex Tests
+
+Use `Matcher` to find a specific log entry with a set of checks on multiple
+fields. Ideal for complex log entries.
+
+<!-- gmmce:pkg/logkit/ExampleTester_Match -->
+```go
+t := &testing.T{}
+
+mcr := logkit.NewMatcher(
+	t,
+	logkit.DefaultConfig(),
+	logkit.CheckNumber("A", 1),
+	logkit.CheckNumber("B", 2),
+)
+
+tst := logkit.New(t)
+
+// Example logs.
+lines := []string{
+	`{"level": "info", "A": 1, "B": 44, "message": "msg 0"}`,
+	`{"level": "info", "A": 1, "B": 42, "message": "msg 1"}`,
+	`{"level": "info", "A": 1, "B": 2, "message": "msg 2"}`,
+}
+for _, line := range lines {
+	_, _ = io.WriteString(tst, line)
+}
+
+// Find the first matching entry.
+ent := tst.Match(mcr)
+
+fmt.Printf("found: %v\n", ent.String())
+// Output:
+// found: {"level": "info", "A": 1, "B": 2, "message": "msg 2"}
+```
+
+### Filtering Entries
+
+`Tester.Filter` takes the same `Check…` functions as a `Matcher` and returns
+every matching entry as `Entries`, so the collection assertions run on the
+filtered subset only, for example
+`tst.Filter(logkit.CheckError()).AssertLen(1)`.
+
+### Waiting for Asynchronous Logs
+
+Test logs from goroutines or async processes with `WaitFor`, which supports
+configurable timeouts.
+
+<!-- gmmce:pkg/logkit/ExampleTester_WaitFor -->
+```go
+t := &testing.T{}
+
+tst := logkit.New(t)
+
+go func() {
+	_, _ = tst.Write([]byte(`{"level": "debug", "A": 0}`))
+	time.Sleep(500 * time.Millisecond)
+	_, _ = tst.Write([]byte(`{"level": "error", "A": 1}`))
+}()
+
+ent := tst.WaitFor("1s", logkit.CheckNumber("A", 1))
+
+fmt.Printf("found: %v\n", ent.String())
+// Output:
+// found: {"level": "error", "A": 1}
+```
+
+Successive `WaitFor` calls match entries in the order they are logged; each
+waits for an entry after the previous match. Use `WaitForAny` when the order
+does not matter.
+
+### Loading Logs from Files
+
+Load and test logs from a file, useful for debugging or validating production
+logs. When the file cannot be read, `Load` fails the test immediately.
+
+<!-- gmmce:pkg/logkit/ExampleLoad -->
+```go
+t := &testing.T{}
+
+tst := logkit.Load(t, "testdata/log.log")
+
+fmt.Println(tst.String())
+// Output:
+// {"level":"info", "str":"abc", "message":"msg0"}
+// {"level":"info", "str":"def", "message":"msg1"}
+```
+
+### Failing Tests With Unexamined Logs
+
+Embed `Trait` in a test helper to make sure logs are not silently ignored.
+Create it with `logkit.NewTrait(t)` and pass `LogWriter()` to the logger. If
+anything was logged and the test never called `ExamineLog()`, the test fails at
+cleanup. `IgnoreLogs()` opts out, and `IgnoreNonErrorLogs()` fails only when
+entries with the error or panic level were logged.
+
+## Configuration
+
+`logkit.New` expects the zerolog field names by default. For other loggers pass
+one of the presets with `logkit.WithConfig`:
+
+| Logger  | Preset                   | Message   | Time   | Duration unit |
+|---------|--------------------------|-----------|--------|---------------|
+| zerolog | `logkit.DefaultConfig()` | `message` | `time` | millisecond   |
+| slog    | `logkit.SlogConfig()`    | `msg`     | `time` | millisecond   |
+| zap     | `logkit.ZapConfig()`     | `msg`     | `ts`   | second        |
+| logrus  | `logkit.LogrusConfig()`  | `msg`     | `time` | nanosecond    |
+
+For a custom format, start from a preset and change the fields of the returned
+`Config`, such as `MessageField`, `LevelField`, `TimeFormat`, or the
+`Level…Value` strings.
 
 ## Assertions
 
 The `logkit` library provides two primary types for working with log entries:
 
-- `Entries`: A collection of log entries, offering methods to assert fields across all entries.
+- `Entries`: A collection of log entries, offering methods to assert fields
+  across all entries.
 - `Entry`: A single log entry, providing methods to assert individual fields.
 
-Both types offer a suite of assertion methods for testing log entries. Below is 
+Both types offer a suite of assertion methods for testing log entries. Below is
 a summary of the available assertions:
 
-```
-Entrues.AssertRaw(want ...string) bool
-Entrues.AssertLen(want int) bool
-Entrues.AssertMsg(want string) bool
-Entrues.AssertNoMsg(want string) bool
-Entrues.AssertMsgContain(want string) bool
-Entrues.AssertNoMsgContain(want string) bool
-Entrues.AssertError(want string) bool
-Entrues.AssertErrorContain(want string) bool
-Entrues.AssertNoError(want string) bool
-Entrues.AssertErr(want error) bool
-Entrues.AssertNoErr(want error) bool
-Entrues.AssertContain(field, want string) bool
-Entrues.AssertStr(field, want string) bool
-Entrues.AssertNoStr(field, want string) bool
-Entrues.AssertNumber(field string, want float64) bool
-Entrues.AssertNoNumber(field string, want float64) bool
-Entrues.AssertBool(field string, want bool) bool
-Entrues.AssertTime(field string, want time.Time) bool
-Entrues.AssertNoTime(field string, want time.Time) bool
-Entrues.AssertDuration(field string, want time.Duration) bool
-Entrues.AssertNoDuration(field string, want time.Duration) bool
-
+```go
+Entries.AssertRaw(want ...string) bool
+Entries.AssertLen(want int) bool
+Entries.AssertMsg(want string) bool
+Entries.AssertNoMsg(want string) bool
+Entries.AssertMsgContain(want string) bool
+Entries.AssertNoMsgContain(want string) bool
+Entries.AssertError(want string) bool
+Entries.AssertErrorContain(want string) bool
+Entries.AssertNoError(want string) bool
+Entries.AssertErr(want error) bool
+Entries.AssertNoErr(want error) bool
+Entries.AssertContain(field, want string) bool
+Entries.AssertStr(field, want string) bool
+Entries.AssertNoStr(field, want string) bool
+Entries.AssertNumber(field string, want float64) bool
+Entries.AssertNoNumber(field string, want float64) bool
+Entries.AssertBool(field string, want bool) bool
+Entries.AssertTime(field string, want time.Time) bool
+Entries.AssertNoTime(field string, want time.Time) bool
+Entries.AssertDuration(field string, want time.Duration) bool
+Entries.AssertNoDuration(field string, want time.Duration) bool
 
 Entry.AssertRaw(want string) bool
 Entry.AssertExist(field string) bool
@@ -222,70 +359,6 @@ Entry.AssertDuration(field string, want time.Duration) bool
 Entry.AssertMap(field string, want map[string]any) bool
 ```
 
-### Custom Matchers for Complex Tests
+## License
 
-Use `Matcher` to find a specific log entry with a set of assertions on multiple 
-fields. Ideal for complex log entries.
-
-```go
-func Test_Match(t *testing.T) {
-    mcr := logkit.NewMatcher(
-        t,
-        logkit.DefaultConfig(),
-        logkit.CheckNumber("A", 1),
-        logkit.CheckNumber("B", 2),
-    )
-    
-    tst := logkit.New(t)
-    
-    // Example logs.
-    _, _ = tst.Write([]byte(`{"level": "info", "A": 1, "B": 44, "message": "msg 0"}`))
-    _, _ = tst.Write([]byte(`{"level": "info", "A": 1, "B": 42, "message": "msg 1"}`))
-    _, _ = tst.Write([]byte(`{"level": "info", "A": 1, "B": 2, "message": "msg 2"}`))
-    
-    // Find the first matching entry.
-    ent := tst.Match(mcr)
-    
-    fmt.Printf("found: %v\n", ent.String())
-    // Output:
-    // found: {"level": "info", "A": 1, "B": 2, "message": "msg 2"}
-}
-```
-
-### Waiting for Asynchronous Logs
-
-Test logs from goroutines or async processes with `WaitFor`, which supports 
-configurable timeouts.
-
-```go
-func Test_WaitFor(t *testing.T) {
-    tst := logkit.New(t)
-    
-    go func() {
-        _, _ = tst.Write([]byte(`{"level": "debug", "A": 0}`))
-        time.Sleep(500 * time.Millisecond)
-        _, _ = tst.Write([]byte(`{"level": "error", "A": 1}`))
-    }()
-    
-    ent := tst.WaitFor("1s", logkit.CheckNumber("A", 1))
-    
-    fmt.Printf("found: %v\n", ent.String())
-    // Output:
-    // found: {"level": "error", "A": 1}
-}
-```
-
-### Loading Logs from Files
-
-Load and test logs from a file, useful for debugging or validating production logs.
-
-```go
-func Test_Load(t *testing.T) {
-    tst := logkit.Load(t, "testdata/log.log")
-    
-    fmt.Println(tst.String())
-    // Output:
-    // {"level":"info", "str":"abc", "message":"msg0"}
-    // {"level":"info", "str":"def", "message":"msg1"}
-}
-```
+Released under the MIT License; see [LICENSE.md](LICENSE.md).

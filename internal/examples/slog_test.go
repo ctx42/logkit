@@ -4,6 +4,7 @@
 package examples
 
 import (
+	"fmt"
 	"log/slog"
 	"testing"
 
@@ -30,4 +31,29 @@ func Test_Slog(t *testing.T) {
 	ets.AssertStr("B", "z")  // Success.
 
 	t.Log(tst.Entries().Summary())
+}
+
+func Example_slog() {
+	t := &testing.T{} // Test manager.
+
+	opt := logkit.WithConfig(logkit.SlogConfig()) // Configure logkit.
+	tst := logkit.New(t, opt)                     // Initialize logkit.
+
+	// Set the Tester as the slog destination.
+	log := slog.New(slog.NewJSONHandler(tst, nil))
+
+	// Use the log instance in your application.
+	log.Info("msg 0", "A", 0, "B", "x")
+	log.Warn("msg 1", "A", 1, "B", "y")
+	log.Error("msg 2", "A", 2, "B", "z")
+
+	ets := tst.Entries()
+	fmt.Printf("has A=2: %v\n", ets.AssertNumber("A", 2))
+	fmt.Printf("has B=z: %v\n", ets.AssertStr("B", "z"))
+	fmt.Printf("has msg 1: %v\n", ets.AssertMsg("msg 1"))
+
+	// Output:
+	// has A=2: true
+	// has B=z: true
+	// has msg 1: true
 }

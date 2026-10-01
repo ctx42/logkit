@@ -4,6 +4,7 @@
 package examples
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -33,4 +34,31 @@ func Test_Logrus(t *testing.T) {
 	ets.AssertStr("B", "z")  // Success.
 
 	t.Log(tst.Entries().Summary())
+}
+
+func Example_logrus() {
+	t := &testing.T{} // Test manager.
+
+	opt := logkit.WithConfig(logkit.LogrusConfig()) // Configure logkit.
+	tst := logkit.New(t, opt)                       // Initialize logkit.
+
+	// Set the Tester as the logrus destination.
+	log := logrus.New()
+	log.SetOutput(tst)
+	log.SetFormatter(&logrus.JSONFormatter{})
+
+	// Use the log instance in your application.
+	log.WithField("A", 0).WithField("B", "x").Info("msg 0")
+	log.WithField("A", 1).WithField("B", "y").Warn("msg 1")
+	log.WithField("A", 2).WithField("B", "z").Error("msg 2")
+
+	ets := tst.Entries()
+	fmt.Printf("has A=2: %v\n", ets.AssertNumber("A", 2))
+	fmt.Printf("has B=z: %v\n", ets.AssertStr("B", "z"))
+	fmt.Printf("has msg 1: %v\n", ets.AssertMsg("msg 1"))
+
+	// Output:
+	// has A=2: true
+	// has B=z: true
+	// has msg 1: true
 }

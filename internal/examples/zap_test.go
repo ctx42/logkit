@@ -4,6 +4,7 @@
 package examples
 
 import (
+	"fmt"
 	"testing"
 
 	"go.uber.org/zap"
@@ -36,4 +37,33 @@ func Test_zap(t *testing.T) {
 	ets.AssertStr("B", "z")  // Success.
 
 	t.Log(tst.Entries().Summary())
+}
+
+func Example_zap() {
+	t := &testing.T{} // Test manager.
+
+	opt := logkit.WithConfig(logkit.ZapConfig()) // Configure logkit.
+	tst := logkit.New(t, opt)                    // Initialize logkit.
+
+	// Set the Tester as the zap destination.
+	writer := zapcore.AddSync(tst)
+	encCfg := zap.NewProductionEncoderConfig()
+	encCfg.EncodeTime = zapcore.RFC3339TimeEncoder
+	enc := zapcore.NewJSONEncoder(encCfg)
+	log := zap.New(zapcore.NewCore(enc, writer, zapcore.InfoLevel))
+
+	// Use the log instance in your application.
+	log.Info("msg 0", zap.Int("A", 0), zap.String("B", "x"))
+	log.Warn("msg 1", zap.Int("A", 1), zap.String("B", "y"))
+	log.Error("msg 2", zap.Int("A", 2), zap.String("B", "z"))
+
+	ets := tst.Entries()
+	fmt.Printf("has A=2: %v\n", ets.AssertNumber("A", 2))
+	fmt.Printf("has B=z: %v\n", ets.AssertStr("B", "z"))
+	fmt.Printf("has msg 1: %v\n", ets.AssertMsg("msg 1"))
+
+	// Output:
+	// has A=2: true
+	// has B=z: true
+	// has msg 1: true
 }
