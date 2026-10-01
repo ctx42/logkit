@@ -806,6 +806,8 @@ func Test_Tester_WaitFor(t *testing.T) {
 		// --- Then ---
 		assert.Zero(t, have)
 		assert.Same(t, tspy, have.t)
+
+		assert.True(t, tst.mx.TryLock())
 	})
 }
 

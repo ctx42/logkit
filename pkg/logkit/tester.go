@@ -243,7 +243,6 @@ func (tst *Tester) ResetLastMatch() {
 // the given timeout duration. If the entry is not logged within the given
 // timeout, it will mark the test as failed and return zero value [Entry].
 func (tst *Tester) WaitFor(timeout string, checks ...Checker) Entry {
-	tst.mx.Lock()
 	tst.t.Helper()
 
 	to, err := time.ParseDuration(timeout)
@@ -252,6 +251,7 @@ func (tst *Tester) WaitFor(timeout string, checks ...Checker) Entry {
 		return ZeroEntry(tst.t, tst.cfg)
 	}
 
+	tst.mx.Lock()
 	mcr := NewMatcher(tst.t, tst.cfg, checks...)
 
 	// Check if we already have the entry.
