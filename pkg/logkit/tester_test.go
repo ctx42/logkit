@@ -496,6 +496,25 @@ func Test_Tester_Filter(t *testing.T) {
 		assert.Same(t, tspy, ets.t)
 		assert.Len(t, 0, ets.ets)
 	})
+
+	t.Run("concurrent lock", func(t *testing.T) {
+		// --- Given ---
+		lin0 := []byte(`{"level":"info", "str":"abc", "message":"msg0"}`)
+
+		tspy := tester.New(t)
+		tspy.Close()
+
+		tst := New(tspy)
+		must.Value(tst.Write(lin0))
+
+		fn := func() { tst.Filter(CheckInfo()) }
+
+		// --- When ---
+		have := Contend(t, &tst.mx, "5s", 1000, fn)
+
+		// --- Then ---
+		assert.True(t, have)
+	})
 }
 
 func Test_Tester_FirstEntry(t *testing.T) {
@@ -535,6 +554,25 @@ func Test_Tester_FirstEntry(t *testing.T) {
 		assert.Zero(t, have)
 		assert.Same(t, tspy, have.t)
 	})
+
+	t.Run("concurrent lock", func(t *testing.T) {
+		// --- Given ---
+		lin0 := []byte(`{"level":"info", "str":"abc", "message":"msg0"}`)
+
+		tspy := tester.New(t)
+		tspy.Close()
+
+		tst := New(tspy)
+		must.Value(tst.Write(lin0))
+
+		fn := func() { tst.FirstEntry() }
+
+		// --- When ---
+		have := Contend(t, &tst.mx, "5s", 1000, fn)
+
+		// --- Then ---
+		assert.True(t, have)
+	})
 }
 
 func Test_Tester_LastEntry(t *testing.T) {
@@ -573,6 +611,25 @@ func Test_Tester_LastEntry(t *testing.T) {
 		// --- Then ---
 		assert.Zero(t, have)
 		assert.Same(t, tspy, have.t)
+	})
+
+	t.Run("concurrent lock", func(t *testing.T) {
+		// --- Given ---
+		lin0 := []byte(`{"level":"info", "str":"abc", "message":"msg0"}`)
+
+		tspy := tester.New(t)
+		tspy.Close()
+
+		tst := New(tspy)
+		must.Value(tst.Write(lin0))
+
+		fn := func() { tst.LastEntry() }
+
+		// --- When ---
+		have := Contend(t, &tst.mx, "5s", 1000, fn)
+
+		// --- Then ---
+		assert.True(t, have)
 	})
 }
 
@@ -958,6 +1015,29 @@ func Test_Tester_Match(t *testing.T) {
 		// --- Then ---
 		assert.Zero(t, have)
 		assert.Same(t, tspy, have.t)
+	})
+
+	t.Run("concurrent lock", func(t *testing.T) {
+		// --- Given ---
+		lin0 := []byte(`{"level":"info", "str":"abc", "message":"msg0"}`)
+
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		tspy.ExpectLogContain("log entry not found")
+		tspy.Close()
+
+		tst := New(tspy)
+		must.Value(tst.Write(lin0))
+
+		mcr := NewMatcher(tspy, nil, CheckMsg("msg1"))
+
+		fn := func() { tst.Match(mcr) }
+
+		// --- When ---
+		have := Contend(t, &tst.mx, "5s", 1000, fn)
+
+		// --- Then ---
+		assert.True(t, have)
 	})
 }
 

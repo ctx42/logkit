@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"sync"
 	"testing"
 	"time"
 
@@ -113,6 +114,59 @@ func ReceiveValue[T any](t tester.T, timeout string, from <-chan T) <-chan T {
 	return received
 }
 
+// Contend calls fn n times while another goroutine repeatedly locks mx for
+// writing. Returns true when all calls finish within the timeout. Otherwise,
+// marks the test as failed and returns false.
+func Contend(
+	t tester.T,
+	mx *sync.RWMutex,
+	timeout string,
+	n int,
+	fn func(),
+) bool {
+
+	t.Helper()
+
+	to, err := time.ParseDuration(timeout)
+	if err != nil {
+		t.Error(err)
+		return false
+	}
+
+	stop := make(chan struct{})
+	defer close(stop)
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+
+			default:
+				mx.Lock()
+				mx.Unlock() //nolint:staticcheck
+			}
+		}
+	}()
+
+	done := make(chan struct{})
+	go func() {
+		for range n {
+			fn()
+		}
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return true
+
+	case <-time.After(to):
+		mHeader := "timeout waiting for calls under lock contention"
+		t.Error(notice.New(mHeader).Append("timeout", "%s", timeout))
+		return false
+	}
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 
 func Test_MustEntries(t *testing.T) {
@@ -174,5 +228,64 @@ func Test_JSON2Map(t *testing.T) {
 
 		// --- Then ---
 		assert.Nil(t, have)
+	})
+}
+
+func Test_Contend(t *testing.T) {
+	t.Run("all calls finish", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.Close()
+
+		var mx sync.RWMutex
+		var cnt int
+		fn := func() {
+			mx.RLock()
+			cnt++
+			mx.RUnlock()
+		}
+
+		// --- When ---
+		have := Contend(tspy, &mx, "1s", 10, fn)
+
+		// --- Then ---
+		assert.True(t, have)
+		assert.Equal(t, 10, cnt)
+	})
+
+	t.Run("error - timeout", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"timeout waiting for calls under lock contention:\n" +
+			"  timeout: 10ms"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		var mx sync.RWMutex
+		fn := func() { time.Sleep(100 * time.Millisecond) }
+
+		// --- When ---
+		have := Contend(tspy, &mx, "10ms", 1, fn)
+
+		// --- Then ---
+		assert.False(t, have)
+	})
+
+	t.Run("error - invalid timeout", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		tspy.ExpectLogEqual("time: invalid duration \"abc\"")
+		tspy.Close()
+
+		var mx sync.RWMutex
+
+		// --- When ---
+		have := Contend(tspy, &mx, "abc", 1, func() {})
+
+		// --- Then ---
+		assert.False(t, have)
 	})
 }

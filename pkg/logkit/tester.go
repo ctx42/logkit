@@ -192,7 +192,7 @@ func (tst *Tester) Filter(checks ...Checker) Entries {
 
 	mcr := NewMatcher(tst.t, tst.cfg, checks...)
 	ets := make([]Entry, 0)
-	for _, ent := range tst.Entries().Get() {
+	for _, ent := range tst.entries().Get() {
 		if mcr.MatchEntry(ent) {
 			ets = append(ets, ent)
 		}
@@ -208,7 +208,7 @@ func (tst *Tester) FirstEntry() Entry {
 	defer tst.mx.RUnlock()
 	tst.t.Helper()
 
-	ets := tst.Entries().Get()
+	ets := tst.entries().Get()
 	if len(ets) == 0 {
 		return ZeroEntry(tst.t, tst.cfg)
 	}
@@ -223,7 +223,7 @@ func (tst *Tester) LastEntry() Entry {
 	defer tst.mx.RUnlock()
 	tst.t.Helper()
 
-	ets := tst.Entries().Get()
+	ets := tst.entries().Get()
 	if len(ets) == 0 {
 		return ZeroEntry(tst.t, tst.cfg)
 	}
@@ -316,7 +316,7 @@ func (tst *Tester) Match(mch *Matcher) Entry {
 		}
 	}
 	tst.t.Error(notice.New("log entry not found"))
-	tst.t.Error(tst.Entries().summary(1))
+	tst.t.Error(tst.entries().summary(1))
 	return ZeroEntry(tst.t, tst.cfg)
 }
 
