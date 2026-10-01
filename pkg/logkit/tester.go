@@ -7,6 +7,8 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
 	"slices"
 	"sync"
@@ -14,6 +16,12 @@ import (
 
 	"github.com/ctx42/testing/pkg/notice"
 	"github.com/ctx42/testing/pkg/tester"
+)
+
+// Interfaces implemented by [Tester].
+var (
+	_ io.Writer    = (*Tester)(nil)
+	_ fmt.Stringer = (*Tester)(nil)
 )
 
 // WithBytes is an option for [New] setting buffer to use inside the [Tester].
