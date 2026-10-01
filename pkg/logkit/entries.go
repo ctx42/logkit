@@ -191,9 +191,7 @@ func (ets Entries) AssertNoErr(want error) bool {
 // marks the test as failed, logs an error message, and returns false.
 func (ets Entries) AssertContain(field, want string) bool {
 	ets.t.Helper()
-	return ets.exp(func(e Entry) error {
-		return CheckContain(field, want)(e)
-	})
+	return ets.exp(CheckContain(field, want))
 }
 
 // AssertStr asserts that at least one log entry in the collection has the
@@ -220,7 +218,7 @@ func (ets Entries) AssertNoStr(field, want string) bool {
 // test as failed, logs an error message, and returns false.
 func (ets Entries) AssertNumber(field string, want float64) bool {
 	ets.t.Helper()
-	return ets.exp(func(e Entry) error { return CheckNumber(field, want)(e) })
+	return ets.exp(CheckNumber(field, want))
 }
 
 // AssertNoNumber asserts that no log entry in the collection has the specified
@@ -229,7 +227,7 @@ func (ets Entries) AssertNumber(field string, want float64) bool {
 // failed, logs an error message, and returns false.
 func (ets Entries) AssertNoNumber(field string, want float64) bool {
 	ets.t.Helper()
-	return ets.notExp(func(e Entry) error { return CheckNumber(field, want)(e) })
+	return ets.notExp(CheckNumber(field, want))
 }
 
 // AssertBool asserts that at least one log entry in the collection has the
@@ -238,7 +236,7 @@ func (ets Entries) AssertNoNumber(field string, want float64) bool {
 // test as failed, logs an error message, and returns false.
 func (ets Entries) AssertBool(field string, want bool) bool {
 	ets.t.Helper()
-	return ets.exp(func(e Entry) error { return CheckBool(field, want)(e) })
+	return ets.exp(CheckBool(field, want))
 }
 
 // AssertTime asserts that at least one log entry in the collection has the
@@ -247,7 +245,7 @@ func (ets Entries) AssertBool(field string, want bool) bool {
 // test as failed, logs an error message, and returns false.
 func (ets Entries) AssertTime(field string, want time.Time) bool {
 	ets.t.Helper()
-	return ets.exp(func(e Entry) error { return CheckTime(field, want)(e) })
+	return ets.exp(CheckTime(field, want))
 }
 
 // AssertNoTime asserts that no log entry in the collection has the specified
@@ -256,7 +254,7 @@ func (ets Entries) AssertTime(field string, want time.Time) bool {
 // logs an error message, and returns false.
 func (ets Entries) AssertNoTime(field string, want time.Time) bool {
 	ets.t.Helper()
-	return ets.notExp(func(e Entry) error { return CheckTime(field, want)(e) })
+	return ets.notExp(CheckTime(field, want))
 }
 
 // AssertDuration asserts that at least one log entry in the collection has the
@@ -265,7 +263,7 @@ func (ets Entries) AssertNoTime(field string, want time.Time) bool {
 // marks the test as failed, logs an error message, and returns false.
 func (ets Entries) AssertDuration(field string, want time.Duration) bool {
 	ets.t.Helper()
-	return ets.exp(func(e Entry) error { return CheckDuration(field, want)(e) })
+	return ets.exp(CheckDuration(field, want))
 }
 
 // AssertNoDuration asserts that no log entry in the collection has the
@@ -274,7 +272,7 @@ func (ets Entries) AssertDuration(field string, want time.Duration) bool {
 // the test as failed, logs an error message, and returns false.
 func (ets Entries) AssertNoDuration(field string, want time.Duration) bool {
 	ets.t.Helper()
-	return ets.notExp(func(e Entry) error { return CheckDuration(field, want)(e) })
+	return ets.notExp(CheckDuration(field, want))
 }
 
 // exp expects the passed function fn to return nil at least once.
