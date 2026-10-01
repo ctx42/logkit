@@ -157,11 +157,9 @@ func Test_Tester_Write(t *testing.T) {
 		assert.Equal(t, -1, tst.matchIdx)
 	})
 
-	t.Run("with matchers", func(t *testing.T) {
+	t.Run("first matcher matches", func(t *testing.T) {
 		// --- Given ---
 		lin0 := []byte(`{"level":"info", "str":"abc", "message":"msg0"}`)
-		lin1 := []byte(`{"level":"info", "str":"def", "message":"msg1"}`)
-		lin2 := []byte(`{"level":"info", "str":"ghi", "message":"msg2"}`)
 
 		tspy := tester.New(t)
 		tspy.Close()
@@ -172,7 +170,7 @@ func Test_Tester_Write(t *testing.T) {
 		tst := New(tspy)
 		tst.matchers = append(tst.matchers, mcr0, mcr2)
 
-		// --- When --- add first line ---
+		// --- When ---
 		have, err := tst.Write(lin0)
 
 		// --- Then ---
@@ -184,31 +182,60 @@ func Test_Tester_Write(t *testing.T) {
 		assert.Equal(t, 0, tst.matchIdx)
 		assert.Len(t, 1, tst.matchers)
 		assert.Same(t, mcr2, tst.matchers[0])
+	})
 
-		// --- When --- add second line ---
-		have, err = tst.Write(lin1)
+	t.Run("line not matching first matcher", func(t *testing.T) {
+		// --- Given ---
+		lin0 := `{"level":"info", "str":"abc", "message":"msg0"}`
+		lin1 := []byte(`{"level":"info", "str":"def", "message":"msg1"}`)
+
+		tspy := tester.New(t)
+		tspy.Close()
+
+		mcr2 := NewMatcher(tspy, nil, CheckMsg("msg2"))
+
+		tst := New(tspy, WithString(lin0))
+		tst.matchIdx = 0
+		tst.matchers = append(tst.matchers, mcr2)
+
+		// --- When ---
+		have, err := tst.Write(lin1)
 
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, 47, have)
 
-		wantBuf := append(lin0, lin1...) // nolint: gocritic
-		assert.Equal(t, string(wantBuf), string(tst.buf))
+		assert.Equal(t, lin0+string(lin1), string(tst.buf))
 		assert.Equal(t, 2, tst.cnt)
 		assert.Equal(t, 0, tst.matchIdx)
 		assert.Len(t, 1, tst.matchers)
 		assert.Same(t, mcr2, tst.matchers[0])
+	})
 
-		// --- When --- add third line ---
-		have, err = tst.Write(lin2)
+	t.Run("last matcher matches", func(t *testing.T) {
+		// --- Given ---
+		lin0 := `{"level":"info", "str":"abc", "message":"msg0"}`
+		lin1 := `{"level":"info", "str":"def", "message":"msg1"}`
+		lin2 := []byte(`{"level":"info", "str":"ghi", "message":"msg2"}`)
+
+		tspy := tester.New(t)
+		tspy.Close()
+
+		mcr2 := NewMatcher(tspy, nil, CheckMsg("msg2"))
+
+		tst := New(tspy, WithString(lin0+"\n"+lin1))
+		tst.matchIdx = 0
+		tst.matchers = append(tst.matchers, mcr2)
+
+		// --- When ---
+		have, err := tst.Write(lin2)
 
 		// --- Then ---
 		assert.NoError(t, err)
 		assert.Equal(t, 47, have)
 
-		wantBuf = append(lin0, lin1...) // nolint: gocritic
-		wantBuf = append(wantBuf, lin2...)
-		assert.Equal(t, string(wantBuf), string(tst.buf))
+		want := lin0 + "\n" + lin1 + string(lin2)
+		assert.Equal(t, want, string(tst.buf))
 		assert.Equal(t, 3, tst.cnt)
 		assert.Equal(t, 2, tst.matchIdx)
 		assert.Len(t, 0, tst.matchers)
