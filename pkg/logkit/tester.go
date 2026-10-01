@@ -192,7 +192,7 @@ func (tst *Tester) Filter(checks ...Checker) Entries {
 
 	mcr := NewMatcher(tst.t, tst.cfg, checks...)
 	ets := make([]Entry, 0)
-	for _, ent := range tst.Entries().Get() {
+	for _, ent := range tst.entries().Get() {
 		if mcr.MatchEntry(ent) {
 			ets = append(ets, ent)
 		}
@@ -208,7 +208,7 @@ func (tst *Tester) FirstEntry() Entry {
 	defer tst.mx.RUnlock()
 	tst.t.Helper()
 
-	ets := tst.Entries().Get()
+	ets := tst.entries().Get()
 	if len(ets) == 0 {
 		return ZeroEntry(tst.t, tst.cfg)
 	}
@@ -223,7 +223,7 @@ func (tst *Tester) LastEntry() Entry {
 	defer tst.mx.RUnlock()
 	tst.t.Helper()
 
-	ets := tst.Entries().Get()
+	ets := tst.entries().Get()
 	if len(ets) == 0 {
 		return ZeroEntry(tst.t, tst.cfg)
 	}
@@ -243,7 +243,6 @@ func (tst *Tester) ResetLastMatch() {
 // the given timeout duration. If the entry is not logged within the given
 // timeout, it will mark the test as failed and return zero value [Entry].
 func (tst *Tester) WaitFor(timeout string, checks ...Checker) Entry {
-	tst.mx.Lock()
 	tst.t.Helper()
 
 	to, err := time.ParseDuration(timeout)
@@ -252,6 +251,7 @@ func (tst *Tester) WaitFor(timeout string, checks ...Checker) Entry {
 		return ZeroEntry(tst.t, tst.cfg)
 	}
 
+	tst.mx.Lock()
 	mcr := NewMatcher(tst.t, tst.cfg, checks...)
 
 	// Check if we already have the entry.
@@ -276,12 +276,14 @@ func (tst *Tester) WaitFor(timeout string, checks ...Checker) Entry {
 	select {
 	case ent = <-found:
 		mcr.NotifyStop()
-		if !timer.Stop() {
-			<-timer.C
-		}
 
 	case <-timer.C:
 		mcr.NotifyStop()
+		tst.mx.Lock()
+		tst.matchers = slices.DeleteFunc(tst.matchers, func(m *Matcher) bool {
+			return m == mcr
+		})
+		tst.mx.Unlock()
 	}
 
 	if !ent.IsZero() {
@@ -316,11 +318,12 @@ func (tst *Tester) Match(mch *Matcher) Entry {
 		}
 	}
 	tst.t.Error(notice.New("log entry not found"))
-	tst.t.Error(tst.Entries().summary(1))
+	tst.t.Error(tst.entries().summary(1))
 	return ZeroEntry(tst.t, tst.cfg)
 }
 
-// Reset resets the Tester.
+// Reset deletes all logged messages and queued matchers, and resets the last
+// match, so [Tester.WaitFor] matches from the beginning of the new log.
 func (tst *Tester) Reset() {
 	tst.mx.Lock()
 	defer tst.mx.Unlock()
@@ -328,4 +331,5 @@ func (tst *Tester) Reset() {
 	tst.cnt = 0
 	tst.buf = tst.buf[:0]
 	tst.matchers = tst.matchers[:0]
+	tst.matchIdx = -1
 }
