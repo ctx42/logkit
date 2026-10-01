@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"path/filepath"
 	"slices"
 	"sync"
 	"time"
@@ -73,12 +74,13 @@ func New(t tester.T, opts ...func(*Tester)) *Tester {
 	return tst
 }
 
-// Load loads the existing log from the path.
+// Load loads the existing log from the path. When the file cannot be read, it
+// fails the test immediately.
 func Load(t tester.T, pth string) *Tester {
 	t.Helper()
-	buf, err := os.ReadFile(pth)
+	buf, err := os.ReadFile(filepath.Clean(pth))
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 		return nil
 	}
 	return New(t, WithBytes(buf))

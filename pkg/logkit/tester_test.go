@@ -151,16 +151,19 @@ func Test_Load(t *testing.T) {
 	t.Run("error - file does not exist error", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
-		tspy.ExpectError()
+		tspy.ExpectFatal()
 		wMsg := "open testdata/not_existing.log: no such file or directory"
 		tspy.ExpectLogEqual(wMsg)
 		tspy.Close()
 
+		fn := func() { Load(tspy, "testdata/not_existing.log") }
+
 		// --- When ---
-		tst := Load(tspy, "testdata/not_existing.log")
+		msg := assert.PanicMsg(t, fn)
 
 		// --- Then ---
-		assert.Nil(t, tst)
+		assert.NotNil(t, msg)
+		assert.Equal(t, tester.FailNowMsg, *msg)
 	})
 }
 
