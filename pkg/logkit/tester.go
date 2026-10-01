@@ -6,6 +6,8 @@ package logkit
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -16,18 +18,24 @@ import (
 	"github.com/ctx42/testing/pkg/tester"
 )
 
+// Interfaces implemented by [Tester].
+var (
+	_ io.Writer    = (*Tester)(nil)
+	_ fmt.Stringer = (*Tester)(nil)
+)
+
 // WithBytes is an option for [New] setting buffer to use inside the [Tester].
 func WithBytes(buf []byte) func(*Tester) {
 	return func(tst *Tester) { tst.buf = buf }
 }
 
-// WithString is an option for [New] which sets the value of the buffer inside the
-// [Tester].
+// WithString is an option for [New] which sets the value of the buffer inside
+// the [Tester].
 func WithString(content string) func(*Tester) {
 	return func(tst *Tester) { tst.buf = []byte(content) }
 }
 
-// WithConfig is an option for [New] which sets [Tester] configuration
+// WithConfig is an option for [New] which sets [Tester] configuration.
 func WithConfig(cfg *Config) func(*Tester) {
 	return func(tst *Tester) { tst.cfg = cfg }
 }
@@ -87,15 +95,9 @@ func Load(t tester.T, pth string) *Tester {
 }
 
 // Write implements [io.Writer] interface. It expects p to be a single log
-// entry which is appended to the buffer. Every time it's called the count, the
-// cnt counter is increased.
-//
-// If there are any matchers, it checks if the message matches the first one.
-// If a match is found, it sets the matchIdx index to the value of cnt and
-// removes the matcher from the "matchers" slice. This logic allows matching
-// log lines in a specific order.
-//
-// It returns the number of bytes written and a nil error.
+// entry, which it appends to the log. When [Tester.WaitFor] is waiting, the
+// entry is checked against the oldest waiting matcher only, so waits match
+// entries in the order they are logged. It never returns an error.
 func (tst *Tester) Write(p []byte) (n int, err error) {
 	tst.mx.Lock()
 	defer tst.mx.Unlock()
@@ -214,7 +216,7 @@ func (tst *Tester) FirstEntry() Entry {
 	return ets[0]
 }
 
-// LastEntry returns the first log entry or zero value Entry if no log entries
+// LastEntry returns the last log entry or zero value Entry if no log entries
 // written to the [Tester]. It marks the test as failed if log entries cannot
 // be unmarshaled.
 func (tst *Tester) LastEntry() Entry {
@@ -303,16 +305,16 @@ func (tst *Tester) WaitForAny(timeout string, checks ...Checker) Entry {
 	return tst.WaitFor(timeout, checks...)
 }
 
-// Match uses [Matcher] to find the first entry in far logged entries. When
-// entry is not found, it will mark the test as failed and return zero value
+// Match uses [Matcher] to find the first matching entry logged so far. When
+// no entry matches, it marks the test as failed and returns a zero value
 // [Entry].
-func (tst *Tester) Match(mch *Matcher) Entry {
+func (tst *Tester) Match(mcr *Matcher) Entry {
 	tst.mx.RLock()
 	defer tst.mx.RUnlock()
 	tst.t.Helper()
 
 	for _, ent := range tst.entries().Get() {
-		if mch.MatchEntry(ent) {
+		if mcr.MatchEntry(ent) {
 			return ent
 		}
 	}

@@ -153,7 +153,7 @@ func Test_Entries_Entry(t *testing.T) {
 	})
 }
 
-func Test_AssertRaw(t *testing.T) {
+func Test_Entries_AssertRaw(t *testing.T) {
 	t.Run("entries match", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -930,8 +930,8 @@ func Test_Entries_AssertBool(t *testing.T) {
 }
 
 func Test_Entries_AssertTime(t *testing.T) {
-	const lin0 = `{"level": "info",  "tim": "2000-01-02T03:04:05Z", "message": "msg0"}`
-	const lin1 = `{"level": "debug", "str": "abc",                  "message": "msg1"}`
+	const lin0 = `{"level":"info", "tim":"2000-01-02T03:04:05Z"}`
+	const lin1 = `{"level":"debug", "str":"abc"}`
 
 	t.Run("entry with the field value found", func(t *testing.T) {
 		// --- Given ---
@@ -939,9 +939,10 @@ func Test_Entries_AssertTime(t *testing.T) {
 		tspy.Close()
 
 		ets := MustEntries(tspy, lin0, lin1)
+		want := time.Date(2000, 1, 2, 3, 4, 5, 0, time.UTC)
 
 		// --- When ---
-		have := ets.AssertTime("tim", time.Date(2000, 1, 2, 3, 4, 5, 0, time.UTC))
+		have := ets.AssertTime("tim", want)
 
 		// --- Then ---
 		assert.True(t, have)
@@ -965,8 +966,8 @@ func Test_Entries_AssertTime(t *testing.T) {
 }
 
 func Test_Entries_AssertNoTime(t *testing.T) {
-	const lin0 = `{"level": "info",  "tim": "2000-01-02T03:04:05Z", "message": "msg0"}`
-	const lin1 = `{"level": "debug", "str": "abc",                  "message": "msg1"}`
+	const lin0 = `{"level":"info", "tim":"2000-01-02T03:04:05Z"}`
+	const lin1 = `{"level":"debug", "str":"abc"}`
 
 	t.Run("field name exists with different value", func(t *testing.T) {
 		// --- Given ---
@@ -990,9 +991,10 @@ func Test_Entries_AssertNoTime(t *testing.T) {
 		tspy.Close()
 
 		ets := MustEntries(tspy, lin0, lin1)
+		want := time.Date(2000, 1, 2, 3, 4, 5, 0, time.UTC)
 
 		// --- When ---
-		have := ets.AssertNoTime("tim", time.Date(2000, 1, 2, 3, 4, 5, 0, time.UTC))
+		have := ets.AssertNoTime("tim", want)
 
 		// --- Then ---
 		assert.False(t, have)
@@ -1069,7 +1071,7 @@ func Test_Entries_AssertNoDuration(t *testing.T) {
 	})
 }
 
-func Test_exp(t *testing.T) {
+func Test_Entries_exp(t *testing.T) {
 	t.Run("entry found", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1132,7 +1134,7 @@ func Test_exp(t *testing.T) {
 	})
 }
 
-func Test_notExp(t *testing.T) {
+func Test_Entries_notExp(t *testing.T) {
 	t.Run("no entries found - fn returns no error", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1202,7 +1204,7 @@ func Test_notExp(t *testing.T) {
 	})
 }
 
-func Test_Summary(t *testing.T) {
+func Test_Entries_Summary(t *testing.T) {
 	t.Run("no entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1241,7 +1243,7 @@ func Test_Summary(t *testing.T) {
 	})
 }
 
-func Test_summary(t *testing.T) {
+func Test_Entries_summary(t *testing.T) {
 	t.Run("no entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1280,7 +1282,7 @@ func Test_summary(t *testing.T) {
 	})
 }
 
-func Test_print(t *testing.T) {
+func Test_Entries_print(t *testing.T) {
 	t.Run("no entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1318,8 +1320,8 @@ func Test_print(t *testing.T) {
 	})
 }
 
-func Test_Print(t *testing.T) {
-	t.Run("error - no entries", func(t *testing.T) {
+func Test_Entries_Print(t *testing.T) {
+	t.Run("no entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
 		tspy.ExpectLogEqual("no entries logged so far")

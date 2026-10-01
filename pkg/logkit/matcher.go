@@ -33,7 +33,7 @@ type Matcher struct {
 	// Checks to run against the lines.
 	checks []Checker
 
-	// Number of times the marcher matched a line or entry.
+	// Number of times the matcher matched a line or entry.
 	cnt int
 
 	// Guards the structure fields.

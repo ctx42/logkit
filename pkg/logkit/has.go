@@ -30,7 +30,7 @@ func HasBool(ent Entry, field string) (bool, error) {
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
 	}
-	return val.(bool), nil // nolint: forcetypeassert
+	return val.(bool), nil //nolint:forcetypeassert
 }
 
 // HasStr checks if the specified string field exists in the Entry's map of
@@ -52,7 +52,7 @@ func HasStr(ent Entry, field string) (string, error) {
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
 	}
-	return val.(string), nil // nolint: forcetypeassert
+	return val.(string), nil //nolint:forcetypeassert
 }
 
 // HasTime checks if the specified string field exists in the Entry's map of
@@ -77,7 +77,7 @@ func HasTime(ent Entry, field string) (time.Time, error) {
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
 	}
-	haveStr := val.(string) // nolint: forcetypeassert
+	haveStr := val.(string) //nolint:forcetypeassert
 	have, err := time.Parse(ent.cfg.TimeFormat, haveStr)
 	if err != nil {
 		format := "[log entry] expected log entry field to have formatted time"
@@ -109,7 +109,7 @@ func HasDur(ent Entry, field string) (time.Duration, error) {
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
 	}
-	haveVal := val.(float64) // nolint: forcetypeassert
+	haveVal := val.(float64) //nolint:forcetypeassert
 	have := time.Duration(math.Round(haveVal * float64(ent.cfg.DurationUnit)))
 	return have, nil
 }
@@ -133,7 +133,7 @@ func HasNum(ent Entry, field string) (float64, error) {
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
 	}
-	return val.(float64), nil // nolint: forcetypeassert
+	return val.(float64), nil //nolint:forcetypeassert
 }
 
 // HasMap checks if the specified map field exists in the Entry's map of
@@ -154,5 +154,5 @@ func HasMap(ent Entry, field string) (map[string]any, error) {
 			Prepend("field", "%s", field).
 			Wrap(ErrType)
 	}
-	return val.(map[string]any), nil // nolint: forcetypeassert
+	return val.(map[string]any), nil //nolint:forcetypeassert
 }

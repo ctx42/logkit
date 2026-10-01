@@ -200,7 +200,8 @@ func Test_HasTime(t *testing.T) {
 		have, err := HasTime(ent, "time")
 
 		// --- Then ---
-		wMsg := "[log entry] expected log entry field to have formatted time:\n" +
+		wMsg := "" +
+			"[log entry] expected log entry field to have formatted time:\n" +
 			"  field: time\n" +
 			"   want: 2006-01-02T15:04:05Z07:00\n" +
 			"   have: 2000-01-02"

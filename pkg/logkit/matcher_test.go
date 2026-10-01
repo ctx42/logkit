@@ -251,7 +251,7 @@ func Test_Matcher_MatchEntry(t *testing.T) {
 		assert.Equal(t, 1, mcr.cnt)
 	})
 
-	t.Run("failure - line must match all checks", func(t *testing.T) {
+	t.Run("error - line must match all checks", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
 		tspy.Close()
@@ -372,7 +372,7 @@ func Test_Matcher_MatchLine(t *testing.T) {
 		assert.Equal(t, 1, mcr.cnt)
 	})
 
-	t.Run("line must match all checks - failure", func(t *testing.T) {
+	t.Run("error - line must match all checks", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
 		tspy.Close()

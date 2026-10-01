@@ -18,10 +18,10 @@ func Test_NewTrait(t *testing.T) {
 		tspy.Close()
 
 		// --- When ---
-		tr := NewTrait(tspy)
+		trt := NewTrait(tspy)
 
 		// --- Then ---
-		assert.NotNil(t, tr)
+		assert.NotNil(t, trt)
 	})
 
 	t.Run("error - logs written are not examined", func(t *testing.T) {
@@ -37,11 +37,11 @@ func Test_NewTrait(t *testing.T) {
 		tspy.ExpectLogEqual(wMsg)
 		tspy.Close()
 
-		tr := NewTrait(tspy)
+		trt := NewTrait(tspy)
 
 		// --- When ---
-		MustWriteLine(tr.tlog, `{"level":"debug","message":"msg0"}`)
-		MustWriteLine(tr.tlog, `{"level":"info","message":"msg1"}`)
+		MustWriteLine(trt.tlog, `{"level":"debug","message":"msg0"}`)
+		MustWriteLine(trt.tlog, `{"level":"info","message":"msg1"}`)
 	})
 }
 
@@ -51,13 +51,13 @@ func Test_Trait_LogWriter(t *testing.T) {
 	tspy.ExpectCleanups(1)
 	tspy.Close()
 
-	tr := NewTrait(tspy)
+	trt := NewTrait(tspy)
 
 	// --- When ---
-	have := tr.LogWriter()
+	have := trt.LogWriter()
 
 	// --- Then ---
-	assert.Same(t, tr.tlog, have)
+	assert.Same(t, trt.tlog, have)
 }
 
 func Test_Trait_ExamineLog(t *testing.T) {
@@ -66,12 +66,12 @@ func Test_Trait_ExamineLog(t *testing.T) {
 	tspy.ExpectCleanups(1)
 	tspy.Close()
 
-	tr := NewTrait(tspy)
-	MustWriteLine(tr.tlog, `{"level":"debug","message":"msg0"}`)
-	MustWriteLine(tr.tlog, `{"level":"info","message":"msg1"}`)
+	trt := NewTrait(tspy)
+	MustWriteLine(trt.tlog, `{"level":"debug","message":"msg0"}`)
+	MustWriteLine(trt.tlog, `{"level":"info","message":"msg1"}`)
 
 	// --- When ---
-	have := tr.ExamineLog()
+	have := trt.ExamineLog()
 
 	// --- Then ---
 	ets := have.Entries()
@@ -86,16 +86,16 @@ func Test_Trait_IgnoreLogs(t *testing.T) {
 	tspy.ExpectCleanups(1)
 	tspy.Close()
 
-	tr := NewTrait(tspy)
-	MustWriteLine(tr.tlog, `{"level":"debug","message":"msg0"}`)
-	MustWriteLine(tr.tlog, `{"level":"info","message":"msg1"}`)
-	MustWriteLine(tr.tlog, `{"level":"error","message":"msg2"}`)
+	trt := NewTrait(tspy)
+	MustWriteLine(trt.tlog, `{"level":"debug","message":"msg0"}`)
+	MustWriteLine(trt.tlog, `{"level":"info","message":"msg1"}`)
+	MustWriteLine(trt.tlog, `{"level":"error","message":"msg2"}`)
 
 	// --- When ---
-	have := tr.IgnoreLogs()
+	have := trt.IgnoreLogs()
 
 	// --- Then ---
-	assert.Same(t, tr, have)
+	assert.Same(t, trt, have)
 }
 
 func Test_Trait_IgnoreNonErrorLogs(t *testing.T) {
@@ -114,16 +114,16 @@ func Test_Trait_IgnoreNonErrorLogs(t *testing.T) {
 		tspy.ExpectLogEqual(wMsg)
 		tspy.Close()
 
-		tr := NewTrait(tspy)
-		MustWriteLine(tr.tlog, `{"level":"debug","message":"msg0"}`)
-		MustWriteLine(tr.tlog, `{"level":"info","message":"msg1"}`)
-		MustWriteLine(tr.tlog, `{"level":"error","message":"msg2"}`)
+		trt := NewTrait(tspy)
+		MustWriteLine(trt.tlog, `{"level":"debug","message":"msg0"}`)
+		MustWriteLine(trt.tlog, `{"level":"info","message":"msg1"}`)
+		MustWriteLine(trt.tlog, `{"level":"error","message":"msg2"}`)
 
 		// --- When ---
-		have := tr.IgnoreNonErrorLogs()
+		have := trt.IgnoreNonErrorLogs()
 
 		// --- Then ---
-		assert.Same(t, tr, have)
+		assert.Same(t, trt, have)
 	})
 
 	t.Run("without errors", func(t *testing.T) {
@@ -132,15 +132,15 @@ func Test_Trait_IgnoreNonErrorLogs(t *testing.T) {
 		tspy.ExpectCleanups(1)
 		tspy.Close()
 
-		tr := NewTrait(tspy)
-		MustWriteLine(tr.tlog, `{"level":"debug","message":"msg0"}`)
-		MustWriteLine(tr.tlog, `{"level":"info","message":"msg1"}`)
+		trt := NewTrait(tspy)
+		MustWriteLine(trt.tlog, `{"level":"debug","message":"msg0"}`)
+		MustWriteLine(trt.tlog, `{"level":"info","message":"msg1"}`)
 
 		// --- When ---
-		have := tr.IgnoreNonErrorLogs()
+		have := trt.IgnoreNonErrorLogs()
 
 		// --- Then ---
-		assert.Same(t, tr, have)
+		assert.Same(t, trt, have)
 	})
 }
 
@@ -150,14 +150,14 @@ func Test_Trait_ResetLog(t *testing.T) {
 	tspy.ExpectCleanups(1)
 	tspy.Close()
 
-	tr := NewTrait(tspy)
-	MustWriteLine(tr.tlog, `{"level":"debug","message":"msg0"}`)
-	MustWriteLine(tr.tlog, `{"level":"info","message":"msg1"}`)
+	trt := NewTrait(tspy)
+	MustWriteLine(trt.tlog, `{"level":"debug","message":"msg0"}`)
+	MustWriteLine(trt.tlog, `{"level":"info","message":"msg1"}`)
 
 	// --- When ---
-	have := tr.ResetLog()
+	have := trt.ResetLog()
 
 	// --- Then ---
-	assert.Same(t, tr, have)
-	assert.Len(t, 0, tr.ExamineLog().Entries().Get())
+	assert.Same(t, trt, have)
+	assert.Len(t, 0, trt.ExamineLog().Entries().Get())
 }

@@ -468,46 +468,6 @@ func Test_CheckDuration(t *testing.T) {
 	})
 }
 
-func Test_CheckNumber(t *testing.T) {
-	t.Run("equal", func(t *testing.T) {
-		// --- Given ---
-		ent := Entry{m: map[string]any{"float": 42.0, "str": "abc"}}
-
-		// --- When ---
-		err := CheckNumber("float", 42)(ent)
-
-		// --- Then ---
-		assert.NoError(t, err)
-	})
-
-	t.Run("error - when a field is not equal", func(t *testing.T) {
-		// --- Given ---
-		ent := Entry{m: map[string]any{"float": 42.0, "str": "abc"}}
-
-		// --- When ---
-		err := CheckNumber("float", 43)(ent)
-
-		// --- Then ---
-		wMsg := "error checking log entry:\n" +
-			"  field: float\n" +
-			"   want: 43\n" +
-			"   have: 42"
-		assert.ErrorEqual(t, wMsg, err)
-		assert.ErrorIs(t, ErrValue, err)
-	})
-
-	t.Run("error - when a field does not exist", func(t *testing.T) {
-		// --- Given ---
-		ent := Entry{m: make(map[string]any)}
-
-		// --- When ---
-		err := CheckNumber("missing", 42)(ent)
-
-		// --- Then ---
-		assert.ErrorIs(t, ErrMissing, err)
-	})
-}
-
 func Test_CheckLevel(t *testing.T) {
 	t.Run("equal", func(t *testing.T) {
 		// --- Given ---
@@ -558,7 +518,7 @@ func Test_CheckLevel(t *testing.T) {
 	})
 }
 
-func Test_check_level_success_tabular(t *testing.T) {
+func Test_CheckLevelFuncs_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
@@ -595,7 +555,7 @@ func Test_check_level_success_tabular(t *testing.T) {
 	}
 }
 
-func Test_check_level_failure_tabular(t *testing.T) {
+func Test_CheckLevelFuncs_error_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
@@ -638,6 +598,46 @@ func Test_check_level_failure_tabular(t *testing.T) {
 			assert.ErrorIs(t, ErrValue, err)
 		})
 	}
+}
+
+func Test_CheckNumber(t *testing.T) {
+	t.Run("equal", func(t *testing.T) {
+		// --- Given ---
+		ent := Entry{m: map[string]any{"float": 42.0, "str": "abc"}}
+
+		// --- When ---
+		err := CheckNumber("float", 42)(ent)
+
+		// --- Then ---
+		assert.NoError(t, err)
+	})
+
+	t.Run("error - when a field is not equal", func(t *testing.T) {
+		// --- Given ---
+		ent := Entry{m: map[string]any{"float": 42.0, "str": "abc"}}
+
+		// --- When ---
+		err := CheckNumber("float", 43)(ent)
+
+		// --- Then ---
+		wMsg := "error checking log entry:\n" +
+			"  field: float\n" +
+			"   want: 43\n" +
+			"   have: 42"
+		assert.ErrorEqual(t, wMsg, err)
+		assert.ErrorIs(t, ErrValue, err)
+	})
+
+	t.Run("error - when a field does not exist", func(t *testing.T) {
+		// --- Given ---
+		ent := Entry{m: make(map[string]any)}
+
+		// --- When ---
+		err := CheckNumber("missing", 42)(ent)
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrMissing, err)
+	})
 }
 
 func Test_CheckMap(t *testing.T) {

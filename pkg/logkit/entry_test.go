@@ -305,52 +305,6 @@ func Test_Entry_AssertFieldCount(t *testing.T) {
 	})
 }
 
-func Test_Entry_AssertFieldType_tabular(t *testing.T) {
-	tspy := tester.New(t)
-	tspy.Close()
-
-	ent := &Entry{
-		cfg: DefaultConfig(),
-		m: map[string]any{
-			"bool":        true,
-			"string":      "val",
-			"number":      42.42,
-			"time":        "2025-01-02T03:04:05Z",
-			"dur":         1000.0,
-			"map":         map[string]any{"k": "v"},
-			"unsupported": []any{1.0},
-		},
-		t: tspy,
-	}
-
-	tt := []struct {
-		testN string
-
-		field string
-		want  FieldType
-	}{
-		{"bool", "bool", TypBool},
-		{"string", "string", TypString},
-		{"number", "number", TypNumber},
-		{"time", "time", TypTime},
-		{"time as string", "time", TypString},
-		{"duration", "dur", TypDur},
-		{"duration as number", "dur", TypNumber},
-		{"map", "map", TypMap},
-		{"unsupported", "unsupported", TypUnsupported},
-	}
-
-	for _, tc := range tt {
-		t.Run(tc.testN, func(t *testing.T) {
-			// --- When ---
-			have := ent.AssertFieldType(tc.field, tc.want)
-
-			// --- Then ---
-			assert.True(t, have)
-		})
-	}
-}
-
 func Test_Entry_AssertFieldType(t *testing.T) {
 	t.Run("error - not existing field", func(t *testing.T) {
 		// --- Given ---
@@ -463,6 +417,52 @@ func Test_Entry_AssertFieldType(t *testing.T) {
 		// --- Then ---
 		assert.False(t, have)
 	})
+}
+
+func Test_Entry_AssertFieldType_tabular(t *testing.T) {
+	tspy := tester.New(t)
+	tspy.Close()
+
+	ent := &Entry{
+		cfg: DefaultConfig(),
+		m: map[string]any{
+			"bool":        true,
+			"string":      "val",
+			"number":      42.42,
+			"time":        "2025-01-02T03:04:05Z",
+			"dur":         1000.0,
+			"map":         map[string]any{"k": "v"},
+			"unsupported": []any{1.0},
+		},
+		t: tspy,
+	}
+
+	tt := []struct {
+		testN string
+
+		field string
+		want  FieldType
+	}{
+		{"bool", "bool", TypBool},
+		{"string", "string", TypString},
+		{"number", "number", TypNumber},
+		{"time", "time", TypTime},
+		{"time as string", "time", TypString},
+		{"duration", "dur", TypDur},
+		{"duration as number", "dur", TypNumber},
+		{"map", "map", TypMap},
+		{"unsupported", "unsupported", TypUnsupported},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- When ---
+			have := ent.AssertFieldType(tc.field, tc.want)
+
+			// --- Then ---
+			assert.True(t, have)
+		})
+	}
 }
 
 func Test_Entry_fieldType_tabular(t *testing.T) {
@@ -1314,7 +1314,7 @@ func Test_Entry_AssertWithin(t *testing.T) {
 		assert.False(t, have)
 	})
 
-	t.Run("invalid diff", func(t *testing.T) {
+	t.Run("error - invalid diff", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
 		tspy.ExpectError()

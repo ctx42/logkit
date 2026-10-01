@@ -5,6 +5,7 @@ package logkit_test
 
 import (
 	"fmt"
+	"io"
 	"testing"
 	"time"
 
@@ -57,9 +58,14 @@ func ExampleTester_Match() {
 	tst := logkit.New(t)
 
 	// Example logs.
-	_, _ = tst.Write([]byte(`{"level": "info", "A": 1, "B": 44, "message": "msg 0"}`))
-	_, _ = tst.Write([]byte(`{"level": "info", "A": 1, "B": 42, "message": "msg 1"}`))
-	_, _ = tst.Write([]byte(`{"level": "info", "A": 1, "B": 2, "message": "msg 2"}`))
+	lines := []string{
+		`{"level": "info", "A": 1, "B": 44, "message": "msg 0"}`,
+		`{"level": "info", "A": 1, "B": 42, "message": "msg 1"}`,
+		`{"level": "info", "A": 1, "B": 2, "message": "msg 2"}`,
+	}
+	for _, line := range lines {
+		_, _ = io.WriteString(tst, line)
+	}
 
 	// Find the first matching entry.
 	ent := tst.Match(mcr)
