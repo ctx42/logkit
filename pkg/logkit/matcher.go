@@ -17,6 +17,14 @@ import (
 // Checker represents a function which checks a log entry for a condition.
 type Checker func(Entry) error
 
+// subscription represents the notification channel returned by
+// [Matcher.Notify].
+type subscription struct {
+	ch   chan Entry     // Receives matched entries.
+	done chan struct{}  // Closed when the subscription ends.
+	wg   sync.WaitGroup // Counts sends in progress.
+}
+
 // Matcher represents log line matcher.
 type Matcher struct {
 	// Log messages fields and their formats.
@@ -31,8 +39,8 @@ type Matcher struct {
 	// Guards the structure fields.
 	mx sync.Mutex
 
-	// When not nil, it will be closed when a log line or [Entry] is matched.
-	notify chan Entry
+	// When not nil, matched log lines and entries are sent to its channel.
+	sub *subscription
 
 	// Test manager.
 	t tester.T
@@ -66,58 +74,47 @@ func (mcr *Matcher) Matched() int {
 func (mcr *Matcher) Notify() <-chan Entry {
 	mcr.mx.Lock()
 	defer mcr.mx.Unlock()
-	if mcr.notify == nil {
-		mcr.notify = make(chan Entry)
-		mcr.t.Cleanup(func() {
-			mcr.mx.Lock()
-			if mcr.notify != nil {
-				close(mcr.notify)
-				mcr.notify = nil
-			}
-			mcr.mx.Unlock()
-		})
+	if mcr.sub == nil {
+		mcr.sub = &subscription{
+			ch:   make(chan Entry),
+			done: make(chan struct{}),
+		}
+		mcr.t.Cleanup(mcr.NotifyStop)
 	}
-	return mcr.notify
+	return mcr.sub.ch
 }
 
 // NotifyStop closes the notification channel returned by [Matcher.Notify].
+// A match waiting for a receiver on that channel gives up and returns.
 func (mcr *Matcher) NotifyStop() {
 	mcr.mx.Lock()
-	if mcr.notify != nil {
-		close(mcr.notify)
-		mcr.notify = nil
+	sub := mcr.sub
+	mcr.sub = nil
+	if sub != nil {
+		close(sub.done)
 	}
 	mcr.mx.Unlock()
+
+	if sub != nil {
+		sub.wg.Wait()
+		close(sub.ch)
+	}
 }
 
 // MatchEntry runs all checks on the provided [Entry]. Returns true if all
 // checks pass; otherwise, returns false.
 //
-// When [Matcher.Notify] is called, it sends the entry to the channel returned
-// if nothing listens on that channel, this call will block.
+// When [Matcher.Notify] was called, a matching entry is sent to the returned
+// channel, and this call blocks until it is received or [Matcher.NotifyStop]
+// is called.
 func (mcr *Matcher) MatchEntry(ent Entry) bool {
-	mcr.mx.Lock()
-	defer mcr.mx.Unlock()
-
-	for _, chk := range mcr.checks {
-		if err := chk(ent); err != nil {
-			return false
-		}
-	}
-	if mcr.notify != nil {
-		mcr.notify <- ent
-	}
-	mcr.cnt++
-	return true
+	return mcr.match(ent)
 }
 
 // MatchLine decodes a log line into a map[string]any, creates an [Entry], and
 // runs all checks on it. Returns the entry if all checks pass; otherwise,
 // returns a zero-value entry.
 func (mcr *Matcher) MatchLine(idx int, line []byte) Entry {
-	mcr.mx.Lock()
-	defer mcr.mx.Unlock()
-
 	line = bytes.TrimSpace(line)
 	dst := make(map[string]any)
 	if err := json.Unmarshal(line, &dst); err != nil {
@@ -132,14 +129,37 @@ func (mcr *Matcher) MatchLine(idx int, line []byte) Entry {
 		idx: idx,
 		t:   mcr.t,
 	}
+	if !mcr.match(ent) {
+		return ZeroEntry(mcr.t, mcr.cfg)
+	}
+	return ent
+}
+
+// match runs all checks on ent. When they all pass, it counts the match and
+// sends ent to the notification channel, if there is one, without holding
+// the lock, so [Matcher.NotifyStop] can cancel the send. Returns true if all
+// checks pass.
+func (mcr *Matcher) match(ent Entry) bool {
+	mcr.mx.Lock()
 	for _, chk := range mcr.checks {
 		if err := chk(ent); err != nil {
-			return ZeroEntry(mcr.t, mcr.cfg)
+			mcr.mx.Unlock()
+			return false
 		}
 	}
-	if mcr.notify != nil {
-		mcr.notify <- ent
-	}
 	mcr.cnt++
-	return ent
+	sub := mcr.sub
+	if sub != nil {
+		sub.wg.Add(1)
+	}
+	mcr.mx.Unlock()
+
+	if sub != nil {
+		defer sub.wg.Done()
+		select {
+		case sub.ch <- ent:
+		case <-sub.done:
+		}
+	}
+	return true
 }

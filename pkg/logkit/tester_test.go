@@ -7,6 +7,7 @@ import (
 	"os"
 	"runtime"
 	"testing"
+	"time"
 
 	"github.com/ctx42/testing/pkg/assert"
 	"github.com/ctx42/testing/pkg/must"
@@ -846,6 +847,53 @@ func Test_Tester_WaitFor(t *testing.T) {
 		assert.Same(t, tspy, ent0.t)
 		assert.Zero(t, ent1)
 		assert.Same(t, tspy, ent1.t)
+	})
+
+	t.Run("error - timeout while matching write is checked", func(t *testing.T) {
+		// --- Given ---
+		lin0 := `{"level":"info", "str":"abc", "message":"msg0"}`
+
+		tspy := tester.New(t)
+		tspy.ExpectCleanups(1)
+		tspy.ExpectError()
+		tspy.ExpectLogContain("timeout waiting for log entry reached")
+		tspy.Close()
+
+		tst := New(tspy)
+
+		// Matches after the WaitFor timeout has expired.
+		chk := func(Entry) error {
+			time.Sleep(200 * time.Millisecond)
+			return nil
+		}
+
+		exited := make(chan struct{})
+		go func() {
+			tst.WaitFor("50ms", chk)
+			close(exited)
+		}()
+
+		// Wait until WaitFor registers its matcher.
+		registered := func() bool {
+			tst.mx.RLock()
+			defer tst.mx.RUnlock()
+			return len(tst.matchers) > 0
+		}
+		for !registered() {
+			time.Sleep(time.Millisecond)
+		}
+
+		written := make(chan struct{})
+
+		// --- When ---
+		go func() {
+			MustWriteLine(tst, lin0)
+			close(written)
+		}()
+
+		// --- Then ---
+		assert.ChannelWillClose(t, "1s", exited)
+		assert.ChannelWillClose(t, "1s", written)
 	})
 
 	t.Run("error - invalid time duration", func(t *testing.T) {
