@@ -325,7 +325,8 @@ func (tst *Tester) Match(mch *Matcher) Entry {
 	return ZeroEntry(tst.t, tst.cfg)
 }
 
-// Reset resets the Tester.
+// Reset deletes all logged messages and queued matchers, and resets the last
+// match, so [Tester.WaitFor] matches from the beginning of the new log.
 func (tst *Tester) Reset() {
 	tst.mx.Lock()
 	defer tst.mx.Unlock()
@@ -333,4 +334,5 @@ func (tst *Tester) Reset() {
 	tst.cnt = 0
 	tst.buf = tst.buf[:0]
 	tst.matchers = tst.matchers[:0]
+	tst.matchIdx = -1
 }

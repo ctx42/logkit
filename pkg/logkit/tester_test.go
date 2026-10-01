@@ -1133,4 +1133,5 @@ func Test_Tester_Reset(t *testing.T) {
 	assert.Equal(t, 0, tst.Len())
 	assert.Equal(t, "", tst.String())
 	assert.Len(t, 0, tst.matchers)
+	assert.Equal(t, -1, tst.matchIdx)
 }
