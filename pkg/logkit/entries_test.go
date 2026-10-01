@@ -19,7 +19,7 @@ func Test_Entries_Get(t *testing.T) {
 		const lin1 = `{"level": "info",  "bool_t": true,  "message": "msg1"}`
 		const lin2 = `{"level": "info",  "bool_f": false, "message": "msg2"}`
 
-		tspy := tester.New(t, 0)
+		tspy := tester.New(t, 1)
 		tspy.Close()
 
 		ets := MustEntries(tspy, lin0, lin1, lin2)
@@ -36,7 +36,7 @@ func Test_Entries_Get(t *testing.T) {
 
 	t.Run("without entries", func(t *testing.T) {
 		// --- Given ---
-		tspy := tester.New(t, 0)
+		tspy := tester.New(t, 1)
 		tspy.Close()
 
 		ets := MustEntries(tspy)

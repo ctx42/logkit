@@ -4,6 +4,7 @@
 package logkit
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -44,6 +45,7 @@ func EntryCheck(want, have any, opts ...any) error {
 // MustEntries builds a [Entries] from a list of raw log messages using the
 // [DefaultConfig]. Panics if a log message is not valid JSON.
 func MustEntries(t tester.T, raws ...string) Entries {
+	t.Helper()
 	cfg := DefaultConfig()
 	ets := Entries{cfg: cfg, ets: make([]Entry, 0, 10), t: t}
 	for i, raw := range raws {
@@ -77,15 +79,21 @@ func MustWriteLine(w io.Writer, lines ...string) {
 		}
 		if n != len(line)+1 {
 			format := "expected to write %d bytes, wrote %d"
-			panic(fmt.Sprintf(format, len(format), n))
+			panic(fmt.Sprintf(format, len(line)+1, n))
 		}
 	}
 }
 
+// shortWriter is an [io.Writer] which reports writing a single byte.
+type shortWriter struct{}
+
+func (shortWriter) Write([]byte) (int, error) { return 1, nil }
+
 // ReceiveValue waits in a separate goroutine for up to the given timeout for a
 // value to be received from the channel. Returns a channel on which the
-// received value will be sent. If the timeout is reached, the returned channel
-// is closed, the test is marked as failed, and the error message is logged.
+// received value will be sent before it is closed. If the timeout is reached,
+// the test is marked as failed, the error message is logged, and the returned
+// channel is closed without a value.
 func ReceiveValue[T any](t tester.T, timeout string, from <-chan T) <-chan T {
 	t.Helper()
 
@@ -96,18 +104,15 @@ func ReceiveValue[T any](t tester.T, timeout string, from <-chan T) <-chan T {
 	}
 	timer := time.NewTimer(to)
 
-	received := make(chan T)
+	received := make(chan T, 1)
 	go func() {
-		received <- <-from
+		defer close(received)
 		select {
 		case v := <-from:
-			if !timer.Stop() {
-				<-timer.C
-			}
+			timer.Stop()
 			received <- v
 
 		case <-timer.C:
-			close(received)
 			mHeader := "timeout receiving a value from the channel"
 			t.Error(notice.New(mHeader).Append("timeout", "%s", timeout))
 		}
@@ -170,6 +175,25 @@ func Contend(
 	}
 }
 
+// AwaitMatchers waits up to one second until tst has n queued matchers.
+// Returns true when it does. Otherwise, marks the test as failed and returns
+// false.
+func AwaitMatchers(t tester.T, tst *Tester, n int) bool {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		tst.mx.RLock()
+		have := len(tst.matchers)
+		tst.mx.RUnlock()
+		if have == n {
+			return true
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Errorf("expected %d queued matchers", n)
+	return false
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 
 func Test_MustEntries(t *testing.T) {
@@ -194,7 +218,7 @@ func Test_MustEntries(t *testing.T) {
 		// --- Given ---
 		const lin0 = `{!!!}`
 
-		tspy := tester.New(t, 0)
+		tspy := tester.New(t, 1)
 		tspy.Close()
 
 		// --- When ---
@@ -231,6 +255,68 @@ func Test_JSON2Map(t *testing.T) {
 
 		// --- Then ---
 		assert.Nil(t, have)
+	})
+}
+
+func Test_MustWriteLine(t *testing.T) {
+	t.Run("writes lines", func(t *testing.T) {
+		// --- Given ---
+		buf := &bytes.Buffer{}
+
+		// --- When ---
+		MustWriteLine(buf, "abc", "def")
+
+		// --- Then ---
+		assert.Equal(t, "abc\ndef\n", buf.String())
+	})
+
+	t.Run("error - short write", func(t *testing.T) {
+		// --- Given ---
+		w := shortWriter{}
+		fn := func() { MustWriteLine(w, "abc") }
+
+		// --- When ---
+		msg := assert.PanicMsg(t, fn)
+
+		// --- Then ---
+		assert.NotNil(t, msg)
+		assert.Equal(t, "expected to write 4 bytes, wrote 1", *msg)
+	})
+}
+
+func Test_ReceiveValue(t *testing.T) {
+	t.Run("value received", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.Close()
+
+		from := make(chan int)
+		go func() { from <- 42 }()
+
+		// --- When ---
+		have := ReceiveValue(tspy, "1s", from)
+
+		// --- Then ---
+		assert.Equal(t, 42, <-have)
+	})
+
+	t.Run("error - timeout", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"timeout receiving a value from the channel:\n" +
+			"  timeout: 10ms"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		from := make(chan int)
+
+		// --- When ---
+		have := ReceiveValue(tspy, "10ms", from)
+
+		// --- Then ---
+		assert.ChannelWillClose(t, "1s", have)
 	})
 }
 
@@ -287,6 +373,39 @@ func Test_Contend(t *testing.T) {
 
 		// --- When ---
 		have := Contend(tspy, &mx, "abc", 1, func() {})
+
+		// --- Then ---
+		assert.False(t, have)
+	})
+}
+
+func Test_AwaitMatchers(t *testing.T) {
+	t.Run("queued", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.Close()
+
+		tst := New(tspy)
+		tst.matchers = append(tst.matchers, NewMatcher(tspy, nil))
+
+		// --- When ---
+		have := AwaitMatchers(tspy, tst, 1)
+
+		// --- Then ---
+		assert.True(t, have)
+	})
+
+	t.Run("error - not queued", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		tspy.ExpectLogEqual("expected 1 queued matchers")
+		tspy.Close()
+
+		tst := New(tspy)
+
+		// --- When ---
+		have := AwaitMatchers(tspy, tst, 1)
 
 		// --- Then ---
 		assert.False(t, have)
