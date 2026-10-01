@@ -4,6 +4,7 @@
 package logkit
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -77,10 +78,15 @@ func MustWriteLine(w io.Writer, lines ...string) {
 		}
 		if n != len(line)+1 {
 			format := "expected to write %d bytes, wrote %d"
-			panic(fmt.Sprintf(format, len(format), n))
+			panic(fmt.Sprintf(format, len(line)+1, n))
 		}
 	}
 }
+
+// shortWriter is an [io.Writer] which reports writing a single byte.
+type shortWriter struct{}
+
+func (shortWriter) Write([]byte) (int, error) { return 1, nil }
 
 // ReceiveValue waits in a separate goroutine for up to the given timeout for a
 // value to be received from the channel. Returns a channel on which the
@@ -246,6 +252,32 @@ func Test_JSON2Map(t *testing.T) {
 
 		// --- Then ---
 		assert.Nil(t, have)
+	})
+}
+
+func Test_MustWriteLine(t *testing.T) {
+	t.Run("writes lines", func(t *testing.T) {
+		// --- Given ---
+		buf := &bytes.Buffer{}
+
+		// --- When ---
+		MustWriteLine(buf, "abc", "def")
+
+		// --- Then ---
+		assert.Equal(t, "abc\ndef\n", buf.String())
+	})
+
+	t.Run("error - short write", func(t *testing.T) {
+		// --- Given ---
+		w := shortWriter{}
+		fn := func() { MustWriteLine(w, "abc") }
+
+		// --- When ---
+		msg := assert.PanicMsg(t, fn)
+
+		// --- Then ---
+		assert.NotNil(t, msg)
+		assert.Equal(t, "expected to write 4 bytes, wrote 1", *msg)
 	})
 }
 
