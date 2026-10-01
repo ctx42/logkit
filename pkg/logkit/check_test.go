@@ -531,7 +531,7 @@ func Test_CheckLevel(t *testing.T) {
 	})
 }
 
-func Test_check_level_success_tabular(t *testing.T) {
+func Test_CheckLevelFuncs_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
@@ -568,7 +568,7 @@ func Test_check_level_success_tabular(t *testing.T) {
 	}
 }
 
-func Test_check_level_failure_tabular(t *testing.T) {
+func Test_CheckLevelFuncs_error_tabular(t *testing.T) {
 	tt := []struct {
 		testN string
 
