@@ -52,6 +52,7 @@ func (ets Entries) Entry(n int) Entry {
 func (ets Entries) AssertRaw(want ...string) bool {
 	ets.t.Helper()
 
+	var mismatch bool
 	for i, wEnt := range want {
 		hEnt := ets.Entry(i)
 		if hEnt.IsZero() {
@@ -60,10 +61,11 @@ func (ets Entries) AssertRaw(want ...string) bool {
 		if e := check.JSON(wEnt, hEnt.raw); e != nil {
 			e = notice.From(e, "log entry").Prepend("index", "%d", i)
 			ets.t.Error(e)
+			mismatch = true
 		}
 	}
 
-	if ets.t.Failed() {
+	if mismatch {
 		return false
 	}
 

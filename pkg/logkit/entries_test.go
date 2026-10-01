@@ -153,6 +153,26 @@ func Test_AssertRaw(t *testing.T) {
 		assert.True(t, have)
 	})
 
+	t.Run("entries match in already failed test", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		tspy.ExpectLogEqual("earlier failure")
+		tspy.Close()
+
+		tspy.Error("earlier failure")
+
+		const lin0 = `{"level": "info", "str": "msg0"}`
+
+		ets := MustEntries(tspy, lin0)
+
+		// --- When ---
+		have := ets.AssertRaw(lin0)
+
+		// --- Then ---
+		assert.True(t, have)
+	})
+
 	t.Run("entries do not match", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
