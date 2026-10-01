@@ -1262,7 +1262,7 @@ func Test_Entries_print(t *testing.T) {
 }
 
 func Test_Entries_Print(t *testing.T) {
-	t.Run("error - no entries", func(t *testing.T) {
+	t.Run("no entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
 		tspy.ExpectLogEqual("no entries logged so far")

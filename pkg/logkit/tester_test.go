@@ -117,7 +117,7 @@ func Test_Load(t *testing.T) {
 		assert.Equal(t, string(want), tst.String())
 	})
 
-	t.Run("error - file does not exist error", func(t *testing.T) {
+	t.Run("error - file does not exist", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
 		tspy.ExpectError()
@@ -1061,7 +1061,7 @@ func Test_Tester_Match(t *testing.T) {
 		assert.Same(t, tspy, have.t)
 	})
 
-	t.Run("error -  not found", func(t *testing.T) {
+	t.Run("error - not found", func(t *testing.T) {
 		// --- Given ---
 		lin0 := []byte(`{"level":"info", "str":"abc", "message":"msg0"}`)
 		lin1 := []byte(`{"level":"debug", "str":"abc", "message":"msg1"}`)

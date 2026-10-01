@@ -1245,7 +1245,7 @@ func Test_Entry_AssertWithin(t *testing.T) {
 		assert.False(t, have)
 	})
 
-	t.Run("invalid diff", func(t *testing.T) {
+	t.Run("error - invalid diff", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
 		tspy.ExpectError()

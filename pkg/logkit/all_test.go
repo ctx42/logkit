@@ -233,7 +233,7 @@ func Test_JSON2Map(t *testing.T) {
 		assert.Equal(t, map[string]any{"f_str": "abc"}, have)
 	})
 
-	t.Run("fail", func(t *testing.T) {
+	t.Run("error - invalid JSON", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
 		tspy.ExpectFail()
