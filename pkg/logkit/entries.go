@@ -34,10 +34,10 @@ func (ets Entries) MetaAll() []map[string]any {
 }
 
 // Entry returns the nth log entry. If the index is out of range, the test is
-// marked as failed, the method returns false but continues execution.
+// marked as failed and a zero value [Entry] is returned.
 func (ets Entries) Entry(n int) Entry {
 	ets.t.Helper()
-	if n < len(ets.ets) {
+	if n >= 0 && n < len(ets.ets) {
 		return ets.ets[n]
 	}
 	msg := notice.New("[log entry] expected log entry to exist").
@@ -52,6 +52,7 @@ func (ets Entries) Entry(n int) Entry {
 func (ets Entries) AssertRaw(want ...string) bool {
 	ets.t.Helper()
 
+	var mismatch bool
 	for i, wEnt := range want {
 		hEnt := ets.Entry(i)
 		if hEnt.IsZero() {
@@ -60,10 +61,11 @@ func (ets Entries) AssertRaw(want ...string) bool {
 		if e := check.JSON(wEnt, hEnt.raw); e != nil {
 			e = notice.From(e, "log entry").Prepend("index", "%d", i)
 			ets.t.Error(e)
+			mismatch = true
 		}
 	}
 
-	if ets.t.Failed() {
+	if mismatch {
 		return false
 	}
 
@@ -170,6 +172,10 @@ func (ets Entries) AssertNoError(want string) bool {
 // returns false.
 func (ets Entries) AssertErr(want error) bool {
 	ets.t.Helper()
+	if want == nil {
+		ets.t.Error(nilWantError(ets.cfg.ErrorField))
+		return false
+	}
 	return ets.AssertError(want.Error())
 }
 
@@ -180,6 +186,10 @@ func (ets Entries) AssertErr(want error) bool {
 // returns false.
 func (ets Entries) AssertNoErr(want error) bool {
 	ets.t.Helper()
+	if want == nil {
+		ets.t.Error(nilWantError(ets.cfg.ErrorField))
+		return false
+	}
 	return ets.AssertNoError(want.Error())
 }
 

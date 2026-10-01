@@ -4,7 +4,6 @@
 package logkit
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"os"
@@ -66,12 +65,10 @@ func New(t tester.T, opts ...func(*Tester)) *Tester {
 		tst.buf = make([]byte, 0, 512)
 	}
 
-	scn := bufio.NewScanner(bytes.NewReader(tst.buf))
-	for scn.Scan() {
-		tst.cnt++
-	}
-	if err := scn.Err(); err != nil {
-		t.Error(err)
+	for line := range bytes.Lines(tst.buf) {
+		if len(bytes.TrimSpace(line)) > 0 {
+			tst.cnt++
+		}
 	}
 	return tst
 }

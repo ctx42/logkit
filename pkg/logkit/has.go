@@ -4,6 +4,7 @@
 package logkit
 
 import (
+	"math"
 	"time"
 
 	"github.com/ctx42/testing/pkg/check"
@@ -109,7 +110,7 @@ func HasDur(ent Entry, field string) (time.Duration, error) {
 			Wrap(ErrType)
 	}
 	haveVal := val.(float64) // nolint: forcetypeassert
-	have := time.Duration(int(haveVal)) * ent.cfg.DurationUnit
+	have := time.Duration(math.Round(haveVal * float64(ent.cfg.DurationUnit)))
 	return have, nil
 }
 

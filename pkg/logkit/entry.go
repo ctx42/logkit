@@ -4,7 +4,6 @@
 package logkit
 
 import (
-	"fmt"
 	"maps"
 	"time"
 
@@ -130,45 +129,55 @@ func (ent Entry) AssertFieldCount(want int) bool {
 }
 
 // AssertFieldType asserts if the log entry contains a field with the specified
-// name and type. It returns true if the field exists and matches the expected
-// type, otherwise it marks the test as failed and returns false.
+// name and type. A [TypTime] field is a string formatted according to
+// [Config.TimeFormat], and a [TypDur] field is a number in
+// [Config.DurationUnit] units. It returns true if the field exists and matches
+// the expected type, otherwise it marks the test as failed and returns false.
 func (ent Entry) AssertFieldType(field string, want FieldType) bool {
 	ent.t.Helper()
 
 	if !ent.AssertExist(field) {
 		return false
 	}
-	val := ent.m[field]
-	var have FieldType
 
-	switch val.(type) {
-	case bool:
-		have = TypBool
-	case string:
-		have = TypString
-	case int:
-		have = TypNumber
-	case float64:
-		have = TypNumber
-	case time.Time:
-		have = TypTime
-	case time.Duration:
-		have = TypDur
-	case map[string]any:
-		have = TypMap
+	var err error
+	switch want {
+	case TypTime:
+		_, err = HasTime(ent, field)
+
+	case TypDur:
+		_, err = HasDur(ent, field)
+
 	default:
-		have = TypUnsupported
+		if ent.fieldType(field) != want {
+			err = ErrType
+		}
 	}
-
-	if want == have {
+	if err == nil {
 		return true
 	}
 
 	const format = "expected log entry field type:\n" +
 		"  want: %s\n" +
-		"  have: %T"
-	ent.t.Errorf(format, want, val)
+		"  have: %s"
+	ent.t.Errorf(format, want, ent.fieldType(field))
 	return false
+}
+
+// fieldType returns the [FieldType] of the JSON decoded field value.
+func (ent Entry) fieldType(field string) FieldType {
+	switch ent.m[field].(type) {
+	case bool:
+		return TypBool
+	case string:
+		return TypString
+	case float64:
+		return TypNumber
+	case map[string]any:
+		return TypMap
+	default:
+		return TypUnsupported
+	}
 }
 
 // Level retrieves the log level from the field named [Config.LevelField].
@@ -182,7 +191,9 @@ func (ent Entry) Level() (string, error) {
 		return "", err
 	}
 	if val == "" {
-		return "", fmt.Errorf("%w: %w", ErrValue, err)
+		return "", notice.New("[log entry] expected log level not to be empty").
+			Append("field", "%s", ent.cfg.LevelField).
+			Wrap(ErrValue)
 	}
 	return val, nil
 }
@@ -215,7 +226,11 @@ func (ent Entry) AssertMsg(want string) bool {
 // logs an error message, and returns false.
 func (ent Entry) AssertMsgErr(want error) bool {
 	ent.t.Helper()
-	return ent.AssertMsg(want.Error())
+	if err := CheckStrErr(ent.cfg.MessageField, want)(ent); err != nil {
+		ent.t.Error(err)
+		return false
+	}
+	return true
 }
 
 // AssertError asserts that the log entry's [Config.ErrorField] matches the
@@ -233,7 +248,11 @@ func (ent Entry) AssertError(want string) bool {
 // logs an error message, and returns false.
 func (ent Entry) AssertErr(want error) bool {
 	ent.t.Helper()
-	return ent.AssertError(want.Error())
+	if err := CheckStrErr(ent.cfg.ErrorField, want)(ent); err != nil {
+		ent.t.Error(err)
+		return false
+	}
+	return true
 }
 
 // Str retrieves the string value of a field in the log entry. Returns the

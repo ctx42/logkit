@@ -71,9 +71,12 @@ func CheckStr(field, want string) Checker {
 // specified field exists with a string value equal to the given error message.
 // Returns nil if the field exists, is a string, and matches. Returns
 // [ErrMissing], [ErrType], or [ErrValue] if the field is missing, not a string,
-// or does not match, respectively.
+// or does not match, respectively. A nil want error also returns [ErrValue].
 func CheckStrErr(field string, want error) Checker {
 	return func(ent Entry) error {
+		if want == nil {
+			return nilWantError(field)
+		}
 		have, err := HasStr(ent, field)
 		if err != nil {
 			return err
@@ -85,6 +88,14 @@ func CheckStrErr(field string, want error) Checker {
 		}
 		return nil
 	}
+}
+
+// nilWantError returns the error reported when a nil error is given as the
+// expected value for the field.
+func nilWantError(field string) error {
+	return notice.New("[log entry] expected want error not to be nil").
+		Append("field", "%s", field).
+		Wrap(ErrValue)
 }
 
 // CheckContain returns a function that takes an [Entry] and checks if the

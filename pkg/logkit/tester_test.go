@@ -6,6 +6,7 @@ package logkit
 import (
 	"os"
 	"runtime"
+	"strings"
 	"testing"
 	"time"
 
@@ -99,6 +100,36 @@ func Test_New(t *testing.T) {
 		assert.Equal(t, 2, tst.Len())
 		assert.Equal(t, lin0, tst.Entries().Entry(0).String())
 		assert.Equal(t, lin1, tst.Entries().Entry(1).String())
+	})
+
+	t.Run("long line", func(t *testing.T) {
+		// --- Given ---
+		lin0 := `{"level":"info", "str":"` + strings.Repeat("a", 70000) + `"}`
+
+		tspy := tester.New(t)
+		tspy.Close()
+
+		// --- When ---
+		tst := New(tspy, WithString(lin0))
+
+		// --- Then ---
+		assert.Equal(t, 1, tst.Len())
+	})
+
+	t.Run("blank lines are not entries", func(t *testing.T) {
+		// --- Given ---
+		lin0 := `{"level":"info", "str":"abc", "message":"msg0"}`
+		lin1 := `{"level":"info", "str":"def", "message":"msg1"}`
+
+		tspy := tester.New(t)
+		tspy.Close()
+
+		// --- When ---
+		tst := New(tspy, WithString(lin0+"\n\n"+lin1+"\n"))
+
+		// --- Then ---
+		assert.Equal(t, 2, tst.Len())
+		assert.Len(t, 2, tst.Entries().Get())
 	})
 }
 
