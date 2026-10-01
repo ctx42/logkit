@@ -129,7 +129,9 @@ func Test_Load(t *testing.T) {
 		tst := Load(tspy, "testdata/not_existing.log")
 
 		// --- Then ---
-		assert.Nil(t, tst)
+		assert.NotNil(t, tst)
+		assert.Equal(t, 0, tst.Len())
+		assert.Same(t, tspy, tst.t)
 	})
 }
 
