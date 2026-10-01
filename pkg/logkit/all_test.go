@@ -167,6 +167,25 @@ func Contend(
 	}
 }
 
+// AwaitMatchers waits up to one second until tst has n queued matchers.
+// Returns true when it does. Otherwise, marks the test as failed and returns
+// false.
+func AwaitMatchers(t tester.T, tst *Tester, n int) bool {
+	t.Helper()
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		tst.mx.RLock()
+		have := len(tst.matchers)
+		tst.mx.RUnlock()
+		if have == n {
+			return true
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Errorf("expected %d queued matchers", n)
+	return false
+}
+
 // /////////////////////////////////////////////////////////////////////////////
 
 func Test_MustEntries(t *testing.T) {
@@ -284,6 +303,39 @@ func Test_Contend(t *testing.T) {
 
 		// --- When ---
 		have := Contend(tspy, &mx, "abc", 1, func() {})
+
+		// --- Then ---
+		assert.False(t, have)
+	})
+}
+
+func Test_AwaitMatchers(t *testing.T) {
+	t.Run("queued", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.Close()
+
+		tst := New(tspy)
+		tst.matchers = append(tst.matchers, NewMatcher(tspy, nil))
+
+		// --- When ---
+		have := AwaitMatchers(tspy, tst, 1)
+
+		// --- Then ---
+		assert.True(t, have)
+	})
+
+	t.Run("error - not queued", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		tspy.ExpectLogEqual("expected 1 queued matchers")
+		tspy.Close()
+
+		tst := New(tspy)
+
+		// --- When ---
+		have := AwaitMatchers(tspy, tst, 1)
 
 		// --- Then ---
 		assert.False(t, have)

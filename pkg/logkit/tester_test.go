@@ -672,6 +672,7 @@ func Test_Tester_WaitFor(t *testing.T) {
 			close(exited)
 		}()
 		<-started
+		AwaitMatchers(t, tst, 1)
 
 		// --- When ---
 		must.Value(tst.Write(lin0))
@@ -835,6 +836,7 @@ func Test_Tester_WaitFor(t *testing.T) {
 			close(exited)
 		}()
 		<-started
+		AwaitMatchers(t, tst, 1)
 
 		// --- When ---
 		must.Value(tst.Write(lin0))
@@ -873,15 +875,7 @@ func Test_Tester_WaitFor(t *testing.T) {
 			close(exited)
 		}()
 
-		// Wait until WaitFor registers its matcher.
-		registered := func() bool {
-			tst.mx.RLock()
-			defer tst.mx.RUnlock()
-			return len(tst.matchers) > 0
-		}
-		for !registered() {
-			time.Sleep(time.Millisecond)
-		}
+		AwaitMatchers(t, tst, 1)
 
 		written := make(chan struct{})
 
@@ -908,13 +902,7 @@ func Test_Tester_WaitFor(t *testing.T) {
 
 		tst := New(tspy)
 		tst.WaitFor("10ms", CheckMsg("never"))
-
-		matchersLen := func() int {
-			tst.mx.RLock()
-			defer tst.mx.RUnlock()
-			return len(tst.matchers)
-		}
-		cnt := matchersLen()
+		assert.Len(t, 0, tst.matchers)
 
 		var have Entry
 		exited := make(chan struct{})
@@ -923,10 +911,7 @@ func Test_Tester_WaitFor(t *testing.T) {
 			close(exited)
 		}()
 
-		// Wait until WaitFor registers its matcher.
-		for matchersLen() == cnt {
-			time.Sleep(time.Millisecond)
-		}
+		AwaitMatchers(t, tst, 1)
 
 		// --- When ---
 		MustWriteLine(tst, lin0)
@@ -934,7 +919,6 @@ func Test_Tester_WaitFor(t *testing.T) {
 		// --- Then ---
 		assert.ChannelWillClose(t, "1s", exited)
 		assert.Equal(t, lin0, have.String())
-		assert.Equal(t, 0, cnt)
 	})
 
 	t.Run("error - invalid time duration", func(t *testing.T) {
