@@ -419,6 +419,31 @@ func Test_Entry_AssertFieldType(t *testing.T) {
 	})
 }
 
+func Test_Entry_Level(t *testing.T) {
+	t.Run("error - empty", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.Close()
+
+		ent := &Entry{
+			cfg: DefaultConfig(),
+			m:   map[string]any{"level": ""},
+			t:   tspy,
+		}
+
+		// --- When ---
+		have, err := ent.Level()
+
+		// --- Then ---
+		assert.ErrorIs(t, ErrValue, err)
+		wMsg := "" +
+			"[log entry] expected log level not to be empty:\n" +
+			"  field: level"
+		assert.ErrorEqual(t, wMsg, err)
+		assert.Empty(t, have)
+	})
+}
+
 func Test_Entry_Level_tabular(t *testing.T) {
 	tt := []struct {
 		testN string

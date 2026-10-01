@@ -4,7 +4,6 @@
 package logkit
 
 import (
-	"fmt"
 	"maps"
 	"time"
 
@@ -182,7 +181,9 @@ func (ent Entry) Level() (string, error) {
 		return "", err
 	}
 	if val == "" {
-		return "", fmt.Errorf("%w: %w", ErrValue, err)
+		return "", notice.New("[log entry] expected log level not to be empty").
+			Append("field", "%s", ent.cfg.LevelField).
+			Wrap(ErrValue)
 	}
 	return val, nil
 }
