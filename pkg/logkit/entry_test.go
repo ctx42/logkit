@@ -349,6 +349,29 @@ func Test_Entry_AssertFieldType(t *testing.T) {
 		assert.False(t, have)
 	})
 
+	t.Run("error - number is not a string", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"expected log entry field type:\n" +
+			"  want: string\n" +
+			"  have: number"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		ent := &Entry{
+			m: map[string]any{"num": 42.0},
+			t: tspy,
+		}
+
+		// --- When ---
+		have := ent.AssertFieldType("num", TypString)
+
+		// --- Then ---
+		assert.False(t, have)
+	})
+
 	t.Run("error - not formatted time", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -379,7 +402,7 @@ func Test_Entry_AssertFieldType(t *testing.T) {
 		tspy.ExpectError()
 		wMsg := "expected log entry field type:\n" +
 			"  want: number\n" +
-			"  have: struct {}"
+			"  have: unsupported"
 		tspy.ExpectLogEqual(wMsg)
 		tspy.Close()
 

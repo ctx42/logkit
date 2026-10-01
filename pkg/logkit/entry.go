@@ -159,8 +159,8 @@ func (ent Entry) AssertFieldType(field string, want FieldType) bool {
 
 	const format = "expected log entry field type:\n" +
 		"  want: %s\n" +
-		"  have: %T"
-	ent.t.Errorf(format, want, ent.m[field])
+		"  have: %s"
+	ent.t.Errorf(format, want, ent.fieldType(field))
 	return false
 }
 
