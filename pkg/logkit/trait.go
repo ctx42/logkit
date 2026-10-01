@@ -10,8 +10,8 @@ import (
 	"github.com/ctx42/testing/pkg/tester"
 )
 
-// Trait provides functionality for testers to fail a test if a log entry is written
-// but not inspected.
+// Trait provides functionality for testers to fail a test if a log entry is
+// written but not inspected.
 type Trait struct {
 	// Reports true if logs were inspected by calling the ExamineLog method.
 	accessed bool
