@@ -797,9 +797,9 @@ func Test_Tester_WaitFor(t *testing.T) {
 		wMsg := "timeout waiting for log entry reached:\n" +
 			"  timeout: 500ms\n" +
 			"entries logged so far:\n" +
-			"   {\"level\":\"info\", \"str\":\"abc\", \"message\":\"msg0\"}\n" +
-			"   {\"level\":\"debug\", \"str\":\"abc\", \"message\":\"msg1\"}\n" +
-			"   {\"level\":\"info\", \"str\":\"abc\", \"message\":\"msg2\"}\n"
+			"   " + string(lin0) + "\n" +
+			"   " + string(lin1) + "\n" +
+			"   " + string(lin2) + "\n"
 		tspy.ExpectLogEqual(wMsg)
 		tspy.Close()
 
@@ -871,9 +871,9 @@ func Test_Tester_WaitFor(t *testing.T) {
 		wMsg := "timeout waiting for log entry reached:\n" +
 			"  timeout: 50ms\n" +
 			"entries logged so far:\n" +
-			"   {\"level\":\"info\", \"str\":\"abc\", \"message\":\"msg0\"}\n" +
-			"   {\"level\":\"debug\", \"str\":\"abc\", \"message\":\"msg1\"}\n" +
-			"   {\"level\":\"info\", \"str\":\"def\", \"message\":\"msg2\"}\n"
+			"   " + string(lin0) + "\n" +
+			"   " + string(lin1) + "\n" +
+			"   " + string(lin2) + "\n"
 		tspy.ExpectLogEqual(wMsg)
 		tspy.Close()
 
@@ -911,7 +911,7 @@ func Test_Tester_WaitFor(t *testing.T) {
 		assert.Same(t, tspy, ent1.t)
 	})
 
-	t.Run("error - timeout while matching write is checked", func(t *testing.T) {
+	t.Run("error - timeout during matching write", func(t *testing.T) {
 		// --- Given ---
 		lin0 := `{"level":"info", "str":"abc", "message":"msg0"}`
 
@@ -1129,9 +1129,9 @@ func Test_Tester_Match(t *testing.T) {
 		tspy.ExpectError()
 		wMsg := "log entry not found\n" +
 			"entries logged so far:\n" +
-			"   {\"level\":\"info\", \"str\":\"abc\", \"message\":\"msg0\"}\n" +
-			"   {\"level\":\"debug\", \"str\":\"abc\", \"message\":\"msg1\"}\n" +
-			"   {\"level\":\"info\", \"str\":\"abc\", \"message\":\"msg2\"}\n"
+			"   " + string(lin0) + "\n" +
+			"   " + string(lin1) + "\n" +
+			"   " + string(lin2) + "\n"
 		tspy.ExpectLogEqual(wMsg)
 		tspy.Close()
 

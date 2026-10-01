@@ -173,7 +173,7 @@ func CheckTime(field string, want time.Time) Checker {
 }
 
 // CheckDuration returns a function that takes an [Entry] and checks if the
-// specified field exists with an integer value, in [DurationFieldUnit], equal
+// specified field exists with an integer value, in [Config.DurationUnit], equal
 // to the given duration. Returns nil if the field exists, is an integer, and
 // matches. Returns [ErrMissing], [ErrType], or [ErrValue] if the field is
 // missing, not an integer, or does not match, respectively.

@@ -46,13 +46,12 @@ func ZeroEntry(t tester.T, cfg *Config) Entry {
 	return Entry{cfg: cfg, t: t}
 }
 
-// IsZero reports whether the raw string is empty. Returns true if the string
-// is empty, and false otherwise.
+// IsZero reports whether the entry has no raw log line.
 func (ent Entry) IsZero() bool {
 	return ent.raw == ""
 }
 
-// Index of the log entry on the list of log all logged messages.
+// Index returns the position of the entry among all logged entries.
 func (ent Entry) Index() int {
 	return ent.idx
 }
@@ -62,7 +61,7 @@ func (ent Entry) String() string {
 	return ent.raw
 }
 
-// Bytes return the log entry as it was written to the writer.
+// Bytes returns the log entry as it was written to the writer.
 func (ent Entry) Bytes() []byte {
 	return []byte(ent.raw)
 }
