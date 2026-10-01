@@ -134,7 +134,7 @@ func Test_Entries_Entry(t *testing.T) {
 	})
 }
 
-func Test_AssertRaw(t *testing.T) {
+func Test_Entries_AssertRaw(t *testing.T) {
 	t.Run("entries match", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1012,7 +1012,7 @@ func Test_Entries_AssertNoDuration(t *testing.T) {
 	})
 }
 
-func Test_exp(t *testing.T) {
+func Test_Entries_exp(t *testing.T) {
 	t.Run("entry found", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1075,7 +1075,7 @@ func Test_exp(t *testing.T) {
 	})
 }
 
-func Test_notExp(t *testing.T) {
+func Test_Entries_notExp(t *testing.T) {
 	t.Run("no entries found - fn returns no error", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1145,7 +1145,7 @@ func Test_notExp(t *testing.T) {
 	})
 }
 
-func Test_Summary(t *testing.T) {
+func Test_Entries_Summary(t *testing.T) {
 	t.Run("no entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1184,7 +1184,7 @@ func Test_Summary(t *testing.T) {
 	})
 }
 
-func Test_summary(t *testing.T) {
+func Test_Entries_summary(t *testing.T) {
 	t.Run("no entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1223,7 +1223,7 @@ func Test_summary(t *testing.T) {
 	})
 }
 
-func Test_print(t *testing.T) {
+func Test_Entries_print(t *testing.T) {
 	t.Run("no entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -1261,7 +1261,7 @@ func Test_print(t *testing.T) {
 	})
 }
 
-func Test_Print(t *testing.T) {
+func Test_Entries_Print(t *testing.T) {
 	t.Run("error - no entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
