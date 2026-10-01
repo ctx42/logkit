@@ -172,6 +172,10 @@ func (ets Entries) AssertNoError(want string) bool {
 // returns false.
 func (ets Entries) AssertErr(want error) bool {
 	ets.t.Helper()
+	if want == nil {
+		ets.t.Error(nilWantError(ets.cfg.ErrorField))
+		return false
+	}
 	return ets.AssertError(want.Error())
 }
 
@@ -182,6 +186,10 @@ func (ets Entries) AssertErr(want error) bool {
 // returns false.
 func (ets Entries) AssertNoErr(want error) bool {
 	ets.t.Helper()
+	if want == nil {
+		ets.t.Error(nilWantError(ets.cfg.ErrorField))
+		return false
+	}
 	return ets.AssertNoError(want.Error())
 }
 

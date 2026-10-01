@@ -694,6 +694,29 @@ func Test_Entry_AssertMsgErr(t *testing.T) {
 		// --- Then ---
 		assert.False(t, have)
 	})
+
+	t.Run("error - nil want", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"[log entry] expected want error not to be nil:\n" +
+			"  field: message"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		ent := Entry{
+			cfg: DefaultConfig(),
+			m:   map[string]any{"message": "msg", "error": "err"},
+			t:   tspy,
+		}
+
+		// --- When ---
+		have := ent.AssertMsgErr(nil)
+
+		// --- Then ---
+		assert.False(t, have)
+	})
 }
 
 func Test_Entry_AssertError(t *testing.T) {
@@ -780,6 +803,29 @@ func Test_Entry_AssertErr(t *testing.T) {
 
 		// --- When ---
 		have := ent.AssertErr(errors.New("xyz"))
+
+		// --- Then ---
+		assert.False(t, have)
+	})
+
+	t.Run("error - nil want", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"[log entry] expected want error not to be nil:\n" +
+			"  field: error"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		ent := Entry{
+			cfg: DefaultConfig(),
+			m:   map[string]any{"message": "msg", "error": "err"},
+			t:   tspy,
+		}
+
+		// --- When ---
+		have := ent.AssertErr(nil)
 
 		// --- Then ---
 		assert.False(t, have)

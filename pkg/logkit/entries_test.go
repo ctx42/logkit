@@ -607,6 +607,25 @@ func Test_Entries_AssertErr(t *testing.T) {
 		// --- Then ---
 		assert.False(t, have)
 	})
+
+	t.Run("error - nil want", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"[log entry] expected want error not to be nil:\n" +
+			"  field: error"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		ets := MustEntries(tspy, `{"level": "error", "error": "err"}`)
+
+		// --- When ---
+		have := ets.AssertErr(nil)
+
+		// --- Then ---
+		assert.False(t, have)
+	})
 }
 
 func Test_Entries_AssertNoErr(t *testing.T) {
@@ -639,6 +658,25 @@ func Test_Entries_AssertNoErr(t *testing.T) {
 
 		// --- When ---
 		have := ets.AssertNoErr(errors.New("msg1"))
+
+		// --- Then ---
+		assert.False(t, have)
+	})
+
+	t.Run("error - nil want", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"[log entry] expected want error not to be nil:\n" +
+			"  field: error"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		ets := MustEntries(tspy, `{"level": "error", "error": "err"}`)
+
+		// --- When ---
+		have := ets.AssertNoErr(nil)
 
 		// --- Then ---
 		assert.False(t, have)

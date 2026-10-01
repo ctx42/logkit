@@ -145,6 +145,33 @@ func Test_CheckStrErr(t *testing.T) {
 		// --- Then ---
 		assert.ErrorIs(t, ErrMissing, err)
 	})
+
+	t.Run("error - nil want", func(t *testing.T) {
+		// --- Given ---
+		ent := Entry{m: map[string]any{"str": "abc"}}
+
+		// --- When ---
+		err := CheckStrErr("str", nil)(ent)
+
+		// --- Then ---
+		wMsg := "" +
+			"[log entry] expected want error not to be nil:\n" +
+			"  field: str"
+		assert.ErrorEqual(t, wMsg, err)
+		assert.ErrorIs(t, ErrValue, err)
+	})
+}
+
+func Test_nilWantError(t *testing.T) {
+	// --- When ---
+	err := nilWantError("error")
+
+	// --- Then ---
+	wMsg := "" +
+		"[log entry] expected want error not to be nil:\n" +
+		"  field: error"
+	assert.ErrorEqual(t, wMsg, err)
+	assert.ErrorIs(t, ErrValue, err)
 }
 
 func Test_CheckContain(t *testing.T) {

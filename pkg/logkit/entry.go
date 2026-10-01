@@ -226,7 +226,11 @@ func (ent Entry) AssertMsg(want string) bool {
 // logs an error message, and returns false.
 func (ent Entry) AssertMsgErr(want error) bool {
 	ent.t.Helper()
-	return ent.AssertMsg(want.Error())
+	if err := CheckStrErr(ent.cfg.MessageField, want)(ent); err != nil {
+		ent.t.Error(err)
+		return false
+	}
+	return true
 }
 
 // AssertError asserts that the log entry's [Config.ErrorField] matches the
@@ -244,7 +248,11 @@ func (ent Entry) AssertError(want string) bool {
 // logs an error message, and returns false.
 func (ent Entry) AssertErr(want error) bool {
 	ent.t.Helper()
-	return ent.AssertError(want.Error())
+	if err := CheckStrErr(ent.cfg.ErrorField, want)(ent); err != nil {
+		ent.t.Error(err)
+		return false
+	}
+	return true
 }
 
 // Str retrieves the string value of a field in the log entry. Returns the
