@@ -83,8 +83,9 @@ func MustWriteLine(w io.Writer, lines ...string) {
 
 // ReceiveValue waits in a separate goroutine for up to the given timeout for a
 // value to be received from the channel. Returns a channel on which the
-// received value will be sent. If the timeout is reached, the returned channel
-// is closed, the test is marked as failed, and the error message is logged.
+// received value will be sent before it is closed. If the timeout is reached,
+// the test is marked as failed, the error message is logged, and the returned
+// channel is closed without a value.
 func ReceiveValue[T any](t tester.T, timeout string, from <-chan T) <-chan T {
 	t.Helper()
 
@@ -95,18 +96,15 @@ func ReceiveValue[T any](t tester.T, timeout string, from <-chan T) <-chan T {
 	}
 	timer := time.NewTimer(to)
 
-	received := make(chan T)
+	received := make(chan T, 1)
 	go func() {
-		received <- <-from
+		defer close(received)
 		select {
 		case v := <-from:
-			if !timer.Stop() {
-				<-timer.C
-			}
+			timer.Stop()
 			received <- v
 
 		case <-timer.C:
-			close(received)
 			mHeader := "timeout receiving a value from the channel"
 			t.Error(notice.New(mHeader).Append("timeout", "%s", timeout))
 		}
@@ -247,6 +245,42 @@ func Test_JSON2Map(t *testing.T) {
 
 		// --- Then ---
 		assert.Nil(t, have)
+	})
+}
+
+func Test_ReceiveValue(t *testing.T) {
+	t.Run("value received", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.Close()
+
+		from := make(chan int)
+		go func() { from <- 42 }()
+
+		// --- When ---
+		have := ReceiveValue(tspy, "1s", from)
+
+		// --- Then ---
+		assert.Equal(t, 42, <-have)
+	})
+
+	t.Run("error - timeout", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"timeout receiving a value from the channel:\n" +
+			"  timeout: 10ms"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		from := make(chan int)
+
+		// --- When ---
+		have := ReceiveValue(tspy, "10ms", from)
+
+		// --- Then ---
+		assert.ChannelWillClose(t, "1s", have)
 	})
 }
 
