@@ -896,6 +896,47 @@ func Test_Tester_WaitFor(t *testing.T) {
 		assert.ChannelWillClose(t, "1s", written)
 	})
 
+	t.Run("timed out wait does not block the next one", func(t *testing.T) {
+		// --- Given ---
+		lin0 := `{"level":"info", "str":"abc", "message":"msg0"}`
+
+		tspy := tester.New(t)
+		tspy.ExpectCleanups(2)
+		tspy.ExpectError()
+		tspy.ExpectLogContain("timeout waiting for log entry reached")
+		tspy.Close()
+
+		tst := New(tspy)
+		tst.WaitFor("10ms", CheckMsg("never"))
+
+		matchersLen := func() int {
+			tst.mx.RLock()
+			defer tst.mx.RUnlock()
+			return len(tst.matchers)
+		}
+		cnt := matchersLen()
+
+		var have Entry
+		exited := make(chan struct{})
+		go func() {
+			have = tst.WaitFor("500ms", CheckMsg("msg0"))
+			close(exited)
+		}()
+
+		// Wait until WaitFor registers its matcher.
+		for matchersLen() == cnt {
+			time.Sleep(time.Millisecond)
+		}
+
+		// --- When ---
+		MustWriteLine(tst, lin0)
+
+		// --- Then ---
+		assert.ChannelWillClose(t, "1s", exited)
+		assert.Equal(t, lin0, have.String())
+		assert.Equal(t, 0, cnt)
+	})
+
 	t.Run("error - invalid time duration", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)

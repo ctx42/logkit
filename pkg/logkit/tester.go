@@ -282,6 +282,11 @@ func (tst *Tester) WaitFor(timeout string, checks ...Checker) Entry {
 
 	case <-timer.C:
 		mcr.NotifyStop()
+		tst.mx.Lock()
+		tst.matchers = slices.DeleteFunc(tst.matchers, func(m *Matcher) bool {
+			return m == mcr
+		})
+		tst.mx.Unlock()
 	}
 
 	if !ent.IsZero() {
