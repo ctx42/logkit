@@ -114,6 +114,25 @@ func Test_Entries_Entry(t *testing.T) {
 		assert.Zero(t, have)
 	})
 
+	t.Run("error - negative index", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"[log entry] expected log entry to exist:\n" +
+			"  index: -1"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		ets := MustEntries(tspy, lin0, lin1, lin2)
+
+		// --- When ---
+		have := ets.Entry(-1)
+
+		// --- Then ---
+		assert.Zero(t, have)
+	})
+
 	t.Run("error - without entries", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)

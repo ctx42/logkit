@@ -34,10 +34,10 @@ func (ets Entries) MetaAll() []map[string]any {
 }
 
 // Entry returns the nth log entry. If the index is out of range, the test is
-// marked as failed, the method returns false but continues execution.
+// marked as failed and a zero value [Entry] is returned.
 func (ets Entries) Entry(n int) Entry {
 	ets.t.Helper()
-	if n < len(ets.ets) {
+	if n >= 0 && n < len(ets.ets) {
 		return ets.ets[n]
 	}
 	msg := notice.New("[log entry] expected log entry to exist").
