@@ -43,6 +43,7 @@ func EntryCheck(want, have any, opts ...any) error {
 // MustEntries builds a [Entries] from a list of raw log messages using the
 // [DefaultConfig]. Panics if a log message is not valid JSON.
 func MustEntries(t tester.T, raws ...string) Entries {
+	t.Helper()
 	cfg := DefaultConfig()
 	ets := Entries{cfg: cfg, ets: make([]Entry, 0, 10), t: t}
 	for i, raw := range raws {
@@ -208,7 +209,7 @@ func Test_MustEntries(t *testing.T) {
 		// --- Given ---
 		const lin0 = `{!!!}`
 
-		tspy := tester.New(t, 0)
+		tspy := tester.New(t, 1)
 		tspy.Close()
 
 		// --- When ---
