@@ -276,6 +276,25 @@ func Test_HasDur(t *testing.T) {
 		assert.Equal(t, time.Second, have)
 	})
 
+	t.Run("fractional value", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t, 0)
+		tspy.Close()
+
+		ent := Entry{
+			cfg: DefaultConfig(),
+			m:   map[string]any{"dur": 1.5},
+			t:   tspy,
+		}
+
+		// --- When ---
+		have, err := HasDur(ent, "dur")
+
+		// --- Then ---
+		assert.NoError(t, err)
+		assert.Equal(t, 1500*time.Microsecond, have)
+	})
+
 	t.Run("error - field has a wrong type", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t, 0)
