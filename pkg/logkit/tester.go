@@ -285,9 +285,6 @@ func (tst *Tester) WaitFor(timeout string, checks ...Checker) Entry {
 	select {
 	case ent = <-found:
 		mcr.NotifyStop()
-		if !timer.Stop() {
-			<-timer.C
-		}
 
 	case <-timer.C:
 		mcr.NotifyStop()
