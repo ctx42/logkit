@@ -310,41 +310,40 @@ func Test_Entry_AssertFieldType_tabular(t *testing.T) {
 	tspy.Close()
 
 	ent := &Entry{
-		idx: 0,
+		cfg: DefaultConfig(),
 		m: map[string]any{
 			"bool":        true,
 			"string":      "val",
-			"integer":     42,
-			"float64":     42.42,
 			"number":      42.42,
-			"time":        time.Now(),
-			"dur":         time.Second,
+			"time":        "2025-01-02T03:04:05Z",
+			"dur":         1000.0,
 			"map":         map[string]any{"k": "v"},
-			"unsupported": struct{}{},
+			"unsupported": []any{1.0},
 		},
 		t: tspy,
 	}
 
 	tt := []struct {
 		testN string
+
+		field string
 		want  FieldType
 	}{
-		{"bool", TypBool},
-		{"string", TypString},
-		{"integer", TypNumber},
-		{"float64", TypNumber},
-		{"number", TypNumber},
-		{"time", TypTime},
-		{"dur", TypDur},
-		{"map", TypMap},
-		{"unsupported", TypUnsupported},
+		{"bool", "bool", TypBool},
+		{"string", "string", TypString},
+		{"number", "number", TypNumber},
+		{"time", "time", TypTime},
+		{"time as string", "time", TypString},
+		{"duration", "dur", TypDur},
+		{"duration as number", "dur", TypNumber},
+		{"map", "map", TypMap},
+		{"unsupported", "unsupported", TypUnsupported},
 	}
 
 	for _, tc := range tt {
-		tc := tc
 		t.Run(tc.testN, func(t *testing.T) {
 			// --- When ---
-			have := ent.AssertFieldType(tc.testN, tc.want)
+			have := ent.AssertFieldType(tc.field, tc.want)
 
 			// --- Then ---
 			assert.True(t, have)
@@ -396,6 +395,30 @@ func Test_Entry_AssertFieldType(t *testing.T) {
 		assert.False(t, have)
 	})
 
+	t.Run("error - not formatted time", func(t *testing.T) {
+		// --- Given ---
+		tspy := tester.New(t)
+		tspy.ExpectError()
+		wMsg := "" +
+			"expected log entry field type:\n" +
+			"  want: time\n" +
+			"  have: string"
+		tspy.ExpectLogEqual(wMsg)
+		tspy.Close()
+
+		ent := &Entry{
+			cfg: DefaultConfig(),
+			m:   map[string]any{"time": "abc"},
+			t:   tspy,
+		}
+
+		// --- When ---
+		have := ent.AssertFieldType("time", TypTime)
+
+		// --- Then ---
+		assert.False(t, have)
+	})
+
 	t.Run("error - unsupported type", func(t *testing.T) {
 		// --- Given ---
 		tspy := tester.New(t)
@@ -417,6 +440,44 @@ func Test_Entry_AssertFieldType(t *testing.T) {
 		// --- Then ---
 		assert.False(t, have)
 	})
+}
+
+func Test_Entry_fieldType_tabular(t *testing.T) {
+	ent := Entry{
+		m: map[string]any{
+			"bool":   true,
+			"string": "val",
+			"number": 42.42,
+			"map":    map[string]any{"k": "v"},
+			"array":  []any{1.0},
+			"null":   nil,
+		},
+	}
+
+	tt := []struct {
+		testN string
+
+		field string
+		want  FieldType
+	}{
+		{"bool", "bool", TypBool},
+		{"string", "string", TypString},
+		{"number", "number", TypNumber},
+		{"map", "map", TypMap},
+		{"array", "array", TypUnsupported},
+		{"null", "null", TypUnsupported},
+		{"missing", "missing", TypUnsupported},
+	}
+
+	for _, tc := range tt {
+		t.Run(tc.testN, func(t *testing.T) {
+			// --- When ---
+			have := ent.fieldType(tc.field)
+
+			// --- Then ---
+			assert.Equal(t, tc.want, have)
+		})
+	}
 }
 
 func Test_Entry_Level(t *testing.T) {

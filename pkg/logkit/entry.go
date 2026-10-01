@@ -129,45 +129,55 @@ func (ent Entry) AssertFieldCount(want int) bool {
 }
 
 // AssertFieldType asserts if the log entry contains a field with the specified
-// name and type. It returns true if the field exists and matches the expected
-// type, otherwise it marks the test as failed and returns false.
+// name and type. A [TypTime] field is a string formatted according to
+// [Config.TimeFormat], and a [TypDur] field is a number in
+// [Config.DurationUnit] units. It returns true if the field exists and matches
+// the expected type, otherwise it marks the test as failed and returns false.
 func (ent Entry) AssertFieldType(field string, want FieldType) bool {
 	ent.t.Helper()
 
 	if !ent.AssertExist(field) {
 		return false
 	}
-	val := ent.m[field]
-	var have FieldType
 
-	switch val.(type) {
-	case bool:
-		have = TypBool
-	case string:
-		have = TypString
-	case int:
-		have = TypNumber
-	case float64:
-		have = TypNumber
-	case time.Time:
-		have = TypTime
-	case time.Duration:
-		have = TypDur
-	case map[string]any:
-		have = TypMap
+	var err error
+	switch want {
+	case TypTime:
+		_, err = HasTime(ent, field)
+
+	case TypDur:
+		_, err = HasDur(ent, field)
+
 	default:
-		have = TypUnsupported
+		if ent.fieldType(field) != want {
+			err = ErrType
+		}
 	}
-
-	if want == have {
+	if err == nil {
 		return true
 	}
 
 	const format = "expected log entry field type:\n" +
 		"  want: %s\n" +
 		"  have: %T"
-	ent.t.Errorf(format, want, val)
+	ent.t.Errorf(format, want, ent.m[field])
 	return false
+}
+
+// fieldType returns the [FieldType] of the JSON decoded field value.
+func (ent Entry) fieldType(field string) FieldType {
+	switch ent.m[field].(type) {
+	case bool:
+		return TypBool
+	case string:
+		return TypString
+	case float64:
+		return TypNumber
+	case map[string]any:
+		return TypMap
+	default:
+		return TypUnsupported
+	}
 }
 
 // Level retrieves the log level from the field named [Config.LevelField].
