@@ -27,7 +27,7 @@ type Trait struct {
 func NewTrait(t tester.T) *Trait {
 	t.Helper()
 
-	tr := &Trait{
+	trt := &Trait{
 		tlog:     New(t),
 		accessed: false,
 	}
@@ -37,19 +37,19 @@ func NewTrait(t tester.T) *Trait {
 	// This forces the test to examine logs.
 	t.Cleanup(func() {
 		t.Helper()
-		n := tr.tlog.Len()
-		if tr.accessed || n == 0 {
+		n := trt.tlog.Len()
+		if trt.accessed || n == 0 {
 			return
 		}
 
 		// Mark the test as failed only if messages with error or panic
 		// log level were logged.
-		if tr.ignoreNonErrors {
+		if trt.ignoreNonErrors {
 			var hasErrors bool
-			for _, ent := range tr.tlog.Entries().Get() {
-				val, _ := HasStr(ent, tr.tlog.cfg.LevelField)
-				if val == tr.tlog.cfg.LevelErrorValue ||
-					val == tr.tlog.cfg.LevelPanicValue {
+			for _, ent := range trt.tlog.Entries().Get() {
+				val, _ := HasStr(ent, trt.tlog.cfg.LevelField)
+				if val == trt.tlog.cfg.LevelErrorValue ||
+					val == trt.tlog.cfg.LevelPanicValue {
 					hasErrors = true
 					break
 				}
@@ -61,38 +61,38 @@ func NewTrait(t tester.T) *Trait {
 
 		msg := notice.New("expected logs to be examined").
 			Append("message cnt", "%d", n).
-			Append("log", "\n%s", notice.Indent(1, ' ', tr.tlog.String()))
+			Append("log", "\n%s", notice.Indent(1, ' ', trt.tlog.String()))
 		t.Error(msg)
 	})
-	return tr
+	return trt
 }
 
 // LogWriter returns the writer a logger should use as a destination.
-func (tr *Trait) LogWriter() io.Writer { return tr.tlog }
+func (trt *Trait) LogWriter() io.Writer { return trt.tlog }
 
 // ExamineLog returns the test log for examination. If it doesn't get called
 // and there are messages logged, it will mark the test as failed.
-func (tr *Trait) ExamineLog() *Tester {
-	tr.accessed = true
-	return tr.tlog
+func (trt *Trait) ExamineLog() *Tester {
+	trt.accessed = true
+	return trt.tlog
 }
 
 // IgnoreLogs doesn't mark the test as failed when the logs weren't examined.
-func (tr *Trait) IgnoreLogs() *Trait {
-	tr.accessed = true
-	return tr
+func (trt *Trait) IgnoreLogs() *Trait {
+	trt.accessed = true
+	return trt
 }
 
 // IgnoreNonErrorLogs doesn't mark the test as failed when the logs weren't
 // examined, and there are no log messages with error or panic log levels.
-func (tr *Trait) IgnoreNonErrorLogs() *Trait {
-	tr.ignoreNonErrors = true
-	return tr
+func (trt *Trait) IgnoreNonErrorLogs() *Trait {
+	trt.ignoreNonErrors = true
+	return trt
 }
 
 // ResetLog deletes all logged messages and resets the accessed flag.
-func (tr *Trait) ResetLog() *Trait {
-	tr.accessed = false
-	tr.tlog.Reset()
-	return tr
+func (trt *Trait) ResetLog() *Trait {
+	trt.accessed = false
+	trt.tlog.Reset()
+	return trt
 }
