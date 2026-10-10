@@ -1,3 +1,6 @@
+## v0.6.1 (Sat, 10 Oct 2026 19:10:02 UTC)
+- build(deps): update github.com/ctx42/testing to v0.57.0.
+
 ## v0.6.0 (Thu, 01 Oct 2026 13:41:16 UTC)
 - build: bump ctx42/testing to v0.56.0.
 - docs: correct AGENTS.md heading.
