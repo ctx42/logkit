@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"log/slog"
 	"runtime"
 	"sync"
 	"testing"
@@ -192,6 +194,23 @@ func AwaitMatchers(t tester.T, tst *Tester, n int) bool {
 	}
 	t.Errorf("expected %d queued matchers", n)
 	return false
+}
+
+// KeepLoggers saves the state of the process-wide [log] and [log/slog]
+// loggers and restores it when the test ends.
+func KeepLoggers(t tester.T) {
+	t.Helper()
+	def := slog.Default()
+	lvl := slog.SetLogLoggerLevel(slog.LevelInfo)
+	slog.SetLogLoggerLevel(lvl)
+	out, flags, prefix := log.Writer(), log.Flags(), log.Prefix()
+	t.Cleanup(func() {
+		slog.SetDefault(def)
+		slog.SetLogLoggerLevel(lvl)
+		log.SetOutput(out)
+		log.SetFlags(flags)
+		log.SetPrefix(prefix)
+	})
 }
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -410,4 +429,31 @@ func Test_AwaitMatchers(t *testing.T) {
 		// --- Then ---
 		assert.False(t, have)
 	})
+}
+
+func Test_KeepLoggers(t *testing.T) {
+	// --- Given ---
+	def, out := slog.Default(), log.Writer()
+
+	tspy := tester.New(t)
+	tspy.ExpectCleanups(1)
+	tspy.Close()
+
+	KeepLoggers(tspy)
+
+	slog.SetDefault(slog.New(slog.NewJSONHandler(io.Discard, nil)))
+	slog.SetLogLoggerLevel(slog.LevelWarn)
+	log.SetOutput(io.Discard)
+	log.SetFlags(log.Lshortfile)
+	log.SetPrefix("pfx: ")
+
+	// --- When ---
+	tspy.Finish()
+
+	// --- Then ---
+	assert.Same(t, def, slog.Default())
+	assert.Equal(t, slog.LevelInfo, slog.SetLogLoggerLevel(slog.LevelInfo))
+	assert.Same(t, out, log.Writer())
+	assert.Equal(t, log.LstdFlags, log.Flags())
+	assert.Equal(t, "", log.Prefix())
 }

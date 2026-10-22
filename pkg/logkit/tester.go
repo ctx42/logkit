@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"slices"
@@ -40,6 +41,13 @@ func WithConfig(cfg *Config) func(*Tester) {
 	return func(tst *Tester) { tst.cfg = cfg }
 }
 
+// WithSlogLevel is an option for [Hijack] which sets the minimum level of the
+// captured [log/slog] records. By default, [Hijack] captures records at
+// [slog.LevelDebug] and above. [New] and [Load] ignore it.
+func WithSlogLevel(lvl slog.Leveler) func(*Tester) {
+	return func(tst *Tester) { tst.slvl = lvl }
+}
+
 // Tester represents a test utility for structured JSON log messages.
 //
 // Example usage:
@@ -55,6 +63,7 @@ type Tester struct {
 	cnt      int          // Number of all log messages (calls to Write).
 	matchers []*Matcher   // Log line matchers.
 	matchIdx int          // Last matched log entry index (-1 means none).
+	slvl     slog.Leveler // Minimum slog level captured by Hijack.
 	mx       sync.RWMutex // Guards the structure fields.
 	t        tester.T     // Test manager.
 }

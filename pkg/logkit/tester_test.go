@@ -4,6 +4,7 @@
 package logkit
 
 import (
+	"log/slog"
 	"os"
 	"runtime"
 	"strings"
@@ -50,6 +51,17 @@ func Test_WithConfig(t *testing.T) {
 	assert.Same(t, cfg, tst.cfg)
 }
 
+func Test_WithSlogLevel(t *testing.T) {
+	// --- Given ---
+	tst := &Tester{}
+
+	// --- When ---
+	WithSlogLevel(slog.LevelWarn)(tst)
+
+	// --- Then ---
+	assert.Equal(t, slog.LevelWarn, tst.slvl)
+}
+
 func Test_New(t *testing.T) {
 	t.Run("no options", func(t *testing.T) {
 		// --- Given ---
@@ -65,6 +77,7 @@ func Test_New(t *testing.T) {
 		assert.Equal(t, 0, tst.cnt)
 		assert.Nil(t, tst.matchers)
 		assert.Equal(t, -1, tst.matchIdx)
+		assert.Nil(t, tst.slvl)
 		assert.Same(t, tspy, tst.t)
 	})
 
