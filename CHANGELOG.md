@@ -1,3 +1,8 @@
+## v0.7.0 (Thu, 22 Oct 2026 10:47:20 UTC)
+- chore(deps): update internal/examples dependencies.
+- feat(logkit): add Hijack to capture global log and slog output.
+- docs: add Hijack examples.
+
 ## v0.6.2 (Sat, 17 Oct 2026 22:00:40 UTC)
 - ci: set C42_CC_RUN_ID in the workflow environment.
 - chore(deps): update dependencies.
