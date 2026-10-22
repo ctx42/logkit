@@ -6,6 +6,8 @@ package logkit_test
 import (
 	"fmt"
 	"io"
+	"log"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -102,4 +104,27 @@ func ExampleLoad() {
 	// Output:
 	// {"level":"info", "str":"abc", "message":"msg0"}
 	// {"level":"info", "str":"def", "message":"msg1"}
+}
+
+func ExampleHijack() {
+	t := &testing.T{} // Test manager.
+
+	// Redirect log and slog to the Tester until the test ends.
+	tst := logkit.Hijack(t)
+
+	// Code under test uses the process-wide loggers.
+	log.Printf("msg %d", 0)
+	slog.Warn("msg 1", "A", 1)
+
+	ets := tst.Entries()
+	fmt.Printf("has two messages: %v\n", ets.AssertLen(2))
+	fmt.Printf("msg 0 is info: %v\n", ets.Entry(0).AssertLevel("INFO"))
+	fmt.Printf("msg 1 is warn: %v\n", ets.Entry(1).AssertLevel("WARN"))
+	fmt.Printf("has A=1: %v\n", ets.AssertNumber("A", 1))
+
+	// Output:
+	// has two messages: true
+	// msg 0 is info: true
+	// msg 1 is warn: true
+	// has A=1: true
 }
