@@ -31,6 +31,11 @@ The repo contains two Go modules:
 
 All public code lives in `pkg/logkit/`. The `internal/examples` module replaces `github.com/ctx42/logkit` with `../..` and pulls in zerolog, zap, logrus, and slog to demonstrate real-world integration.
 
+The root module must never gain a dependency: its `go.mod` requires only
+`github.com/ctx42/testing`. Put logger libraries (zap, logrus, zerolog, and
+the like) only in `internal/examples`. When a doc example would need a new
+root dependency, keep the hand-written README snippet instead.
+
 ## Architecture
 
 The library provides test helpers for asserting structured JSON log output. Its public surface is a single package (`pkg/logkit`).
