@@ -1,3 +1,6 @@
+## v0.7.1 (Tue, 24 Nov 2026 14:28:41 UTC)
+- docs(agents): forbid new dependencies in the root module.
+
 ## v0.7.0 (Thu, 22 Oct 2026 10:47:20 UTC)
 - chore(deps): update internal/examples dependencies.
 - feat(logkit): add Hijack to capture global log and slog output.
